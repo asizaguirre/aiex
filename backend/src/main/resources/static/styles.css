@@ -125,6 +125,40 @@ body {
   align-items: start;
 }
 
+.app-container.locked .dashboard-grid {
+  display: none;
+}
+
+.app-container.locked::after {
+  content: 'Autentique-se com o Google para acessar o workspace';
+  display: block;
+  max-width: 520px;
+  margin: 100px auto;
+  padding: 28px;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-card);
+  color: var(--text-secondary);
+  text-align: center;
+  background: var(--bg-card);
+}
+
+.overview-tab { min-height: 360px; }
+.overview-hero { max-width: 680px; padding: 24px 4px 30px; }
+.overview-hero h2 { font-size: 2rem; line-height: 1.15; margin: 10px 0 14px; }
+.overview-hero p { color: var(--text-secondary); line-height: 1.6; }
+.eyebrow { color: var(--color-alex); font: 600 0.72rem var(--font-mono); letter-spacing: 0.08em; }
+.overview-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+.overview-grid article, .user-row { border: 1px solid var(--border-color); border-radius: 8px; padding: 16px; background: rgba(255,255,255,.025); }
+.overview-grid article { display: flex; flex-direction: column; gap: 8px; }
+.overview-grid span, .user-row span { color: var(--text-secondary); font-size: .8rem; line-height: 1.45; }
+.section-heading-row, .user-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.admin-badge { color: var(--color-orange); font: 600 .7rem var(--font-mono); }
+.user-registration-form { display: grid; grid-template-columns: 1fr 1fr auto; gap: 8px; margin: 18px 0; }
+.user-registration-form input { min-width: 0; }
+.users-list { display: grid; gap: 8px; }
+.user-row > div { display: flex; flex-direction: column; gap: 4px; }
+.empty-state { color: var(--text-secondary); font-size: .8rem; }
+
 @media (max-width: 1200px) {
   .dashboard-grid {
     grid-template-columns: 280px 1fr;
@@ -141,6 +175,7 @@ body {
   .sidebar-panel, .main-panel, .right-panel {
     grid-column: span 1;
   }
+  .overview-grid, .user-registration-form { grid-template-columns: 1fr; }
 }
 
 /* Common sidebar section styles */

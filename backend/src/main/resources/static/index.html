@@ -11,28 +11,19 @@
   <script src="https://accounts.google.com/gsi/client" async defer></script>
 </head>
 <body>
-  <div class="app-container">
+  <div class="app-container locked" id="appContainer">
     <header class="app-header">
       <div class="header-logo">
         <div class="logo-orb"></div>
         <h1>AlEx Platform <span>v2.0</span></h1>
       </div>
-      <p class="header-subtitle">Ecossistema Inteligente de Agentes Autônomos (Alia & Alex)</p>
+      <p class="header-subtitle">Central de descoberta, especificação e construção de agentes (Alia & Alex)</p>
 
       <!-- Admin Zone: Login + Shutdown -->
       <div class="admin-zone">
         <!-- Google Sign-In (compact) -->
         <div id="adminLoginArea">
-          <div id="g_id_onload"
-               data-client_id="800464070591-33nvvitct598mb53dccehl15q8cjm4m9.apps.googleusercontent.com"
-               data-callback="handleGoogleLogin"
-               data-auto_prompt="false">
-          </div>
-          <div class="g_id_signin"
-               data-type="icon"
-               data-shape="circle"
-               data-theme="filled_black"
-               data-size="medium">
+          <div id="googleSignInButton">
           </div>
         </div>
 
@@ -46,11 +37,12 @@
             <span class="shutdown-icon">⏻</span>
             <span class="shutdown-text">Desligar</span>
           </button>
+          <button id="logoutBtn" class="btn-secondary" title="Sair da conta">Sair</button>
         </div>
       </div>
     </header>
 
-    <div class="dashboard-grid">
+    <div class="dashboard-grid" id="authenticatedWorkspace">
       <!-- Painel Esquerdo: Configurações & Fontes de Dados -->
       <aside class="sidebar-panel glass-card">
         <div class="sidebar-section">
@@ -150,9 +142,25 @@
       <main class="main-panel">
         
         <!-- Tabs de Navegação Dinâmica -->
-        <div class="main-tabs">
-          <button class="tab-btn active" data-target="chatTab">💬 Builder Chat</button>
+        <div class="main-tabs" role="tablist" aria-label="Áreas da plataforma">
+          <button class="tab-btn active" data-target="overviewTab">Visão geral</button>
+          <button class="tab-btn" data-target="chatTab">Builder Chat</button>
+          <button class="tab-btn" data-target="agentsTab">Meus agentes</button>
+          <button class="tab-btn admin-only" data-target="adminTab" style="display: none;">Administração</button>
         </div>
+
+        <section class="tab-content active glass-card overview-tab" id="overviewTab">
+          <div class="overview-hero">
+            <span class="eyebrow">WORKSPACE DE AGENTES</span>
+            <h2>Transforme uma necessidade em um agente pronto para evoluir.</h2>
+            <p>A Alia organiza contexto e requisitos. O Alex transforma a especificação em implementação, testes e uma entrega acompanhável.</p>
+          </div>
+          <div class="overview-grid">
+            <article><strong>01 · Descobrir</strong><span>Converse com a Alia para mapear objetivos, usuários, dados e critérios de sucesso.</span></article>
+            <article><strong>02 · Construir</strong><span>Peça ao Alex um plano técnico, protótipo ou integração para o agente.</span></article>
+            <article><strong>03 · Governar</strong><span>Use RAG, fonte da verdade e o monitor de pipeline para manter qualidade e rastreabilidade.</span></article>
+          </div>
+        </section>
 
         <!-- Interface de Chat -->
         <section class="chat-section glass-card tab-content active" id="chatTab">
@@ -167,7 +175,7 @@
           <div class="chat-history" id="chatHistory">
             <div class="chat-bubble assistant">
               <strong>ALIA & ALEX</strong>
-              <div>Olá! Eu sou a Alia e este é o Alex. Peça para criarmos uma tela ou iniciarmos um agente observador (como o do Blackjack)!</div>
+              <div>Olá! Eu sou a Alia e este é o Alex. Conte qual necessidade você quer transformar em um agente e começaremos pelos requisitos.</div>
             </div>
           </div>
 
@@ -178,6 +186,23 @@
               <button id="sendBtn" class="btn-primary">Enviar Mensagem</button>
             </div>
           </div>
+        </section>
+
+        <section class="tab-content glass-card" id="agentsTab" style="display: none;">
+          <h2>Seus agentes</h2>
+          <p class="section-desc">Agentes criados neste workspace. Selecione um para conversar ou volte ao Builder Chat para criar outro.</p>
+          <div id="agentsTabList" class="custom-agents-list"></div>
+        </section>
+
+        <section class="tab-content glass-card admin-tab" id="adminTab" style="display: none;">
+          <div class="section-heading-row"><div><h2>Administração de clientes</h2><p class="section-desc">Cadastre quem poderá autenticar e usar Alia e Alex.</p></div><span class="admin-badge">ADMIN</span></div>
+          <form id="userRegistrationForm" class="user-registration-form">
+            <input type="text" id="userName" placeholder="Nome do cliente" autocomplete="name" />
+            <input type="email" id="userEmail" placeholder="E-mail Google do cliente" autocomplete="email" required />
+            <button type="submit" class="btn-primary">Cadastrar cliente</button>
+          </form>
+          <div id="userStatus" class="mini-status"></div>
+          <div id="usersList" class="users-list"></div>
         </section>
       </main>
 
@@ -263,7 +288,7 @@
     
     <div class="demo-info-banner">
       <span>💡</span>
-      <div>Este é um <strong>exemplo</strong> do que Alex e Alia podem construir. Troque a URL abaixo para observar qualquer sistema — cassino, dashboard, ERP, site de clientes.</div>
+      <div>Este é um <strong>exemplo</strong> do que Alex e Alia podem construir. Troque a URL abaixo para observar um sistema, dashboard, ERP ou site autorizado.</div>
     </div>
 
     <div class="agent-popup-toolbar" style="display: flex; gap: 8px; padding: 10px; border-bottom: 1px solid var(--border-color);">

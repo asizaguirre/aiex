@@ -221,6 +221,13 @@ const customAgentRole = document.getElementById('customAgentRole');
 const createAgentBtn = document.getElementById('createAgentBtn');
 const creatorStatus = document.getElementById('creatorStatus');
 const customAgentsList = document.getElementById('customAgentsList');
+const agentsTabList = document.getElementById('agentsTabList');
+const appContainer = document.getElementById('appContainer');
+const userRegistrationForm = document.getElementById('userRegistrationForm');
+const userNameInput = document.getElementById('userName');
+const userEmailInput = document.getElementById('userEmail');
+const usersList = document.getElementById('usersList');
+const userStatus = document.getElementById('userStatus');
 
 // Sandbox Elements
 const sandboxSection = document.getElementById('sandboxSection');
@@ -417,7 +424,7 @@ createAgentBtn.addEventListener('click', async () => {
     const res = await fetch(getApiUrl('/api/agents/custom'), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name, role })
+      body: JSON.stringify({ name, role, email: adminEmail || sessionStorage.getItem('alexUserEmail') })
     });
 
     if (!res.ok) throw new Error('Falha ao persistir o agente');
@@ -453,8 +460,10 @@ async function loadCustomAgents() {
 
 function renderCustomAgents(agents) {
   customAgentsList.innerHTML = '';
+  if (agentsTabList) agentsTabList.innerHTML = '';
   if (agents.length === 0) {
     customAgentsList.innerHTML = '<span style="font-size: 0.75rem; color: var(--text-secondary);">Nenhum agente instanciado ainda.</span>';
+    if (agentsTabList) agentsTabList.innerHTML = '<span class="empty-state">Nenhum agente criado ainda.</span>';
     return;
   }
   
@@ -485,6 +494,12 @@ function renderCustomAgents(agents) {
     chatBtn.addEventListener('click', () => openAgentModal(agent.name, agent.role));
 
     customAgentsList.appendChild(el);
+    if (agentsTabList) {
+      const tabAgent = el.cloneNode(true);
+      tabAgent.querySelector('.btn-open-chat').addEventListener('click', () => openAgentModal(agent.name, agent.role));
+      tabAgent.querySelector('.btn-remove-agent').addEventListener('click', () => deleteCustomAgent(agent.id));
+      agentsTabList.appendChild(tabAgent);
+    }
   });
 }
 
@@ -629,7 +644,7 @@ form.addEventListener('input', (e) => {
 }
 
 // 5. Delete screen on Finish (Finalizar)
-finishScreenBtn.addEventListener('click', () => {
+if (finishScreenBtn && sandboxSection) finishScreenBtn.addEventListener('click', () => {
   sandboxSection.style.opacity = '1';
   
   // Fade out animation
@@ -735,6 +750,8 @@ const shutdownConfirm = document.getElementById('shutdownConfirm');
 const shutdownConfirmInfo = document.getElementById('shutdownConfirmInfo');
 const shutdownProgress = document.getElementById('shutdownProgress');
 const shutdownMessage = document.getElementById('shutdownMessage');
+const logoutBtn = document.getElementById('logoutBtn');
+const adminTabs = document.querySelectorAll('.admin-only');
 
 /**
  * Decode a JWT token payload (Google ID token).
@@ -772,7 +789,7 @@ window.handleGoogleLogin = async function(response) {
 
   // Verify admin status with backend
   try {
-    const res = await fetch(getApiUrl('/api/admin/verify'), {
+    const res = await fetch(getApiUrl('/api/access/verify'), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email })
@@ -784,26 +801,116 @@ window.handleGoogleLogin = async function(response) {
     if (data.authorized) {
       adminEmail = email;
       adminUserName = name;
+      sessionStorage.setItem('alexUserEmail', email);
+      sessionStorage.setItem('alexUserName', name);
+      sessionStorage.setItem('alexUserPicture', picture);
+      appContainer.classList.remove('locked');
 
       // Show admin panel, hide login button
       adminLoginArea.style.display = 'none';
       adminPanel.style.display = 'flex';
       adminAvatar.src = picture;
       adminNameEl.textContent = name;
+      adminTabs.forEach(tab => { tab.style.display = data.admin ? 'inline-flex' : 'none'; });
 
-      showToast(`Bem-vindo, ${name}! Modo admin ativo.`);
-      appendMessage('SISTEMA', `🔐 Admin autenticado: ${name} (${email}). Botão de shutdown ativado.`, 'assistant');
+      showToast(data.admin ? `Bem-vindo, ${name}! Modo admin ativo.` : `Bem-vindo, ${name}!`);
+      appendMessage('SISTEMA', `🔐 Usuário autenticado: ${name} (${email}).`, 'assistant');
       
       // Update custom agents to show delete buttons
       loadCustomAgents();
+      if (data.admin) loadUsers();
     } else {
-      showToast(`Olá, ${name}! Você não é administrador da plataforma.`);
+      showToast(`O e-mail ${email} ainda não está autorizado.`);
     }
   } catch (err) {
     console.error('Erro verificando admin:', err);
     showToast('Erro ao verificar permissões de admin.');
   }
 };
+
+function initializeGoogleSignIn() {
+  const button = document.getElementById('googleSignInButton');
+  if (!button || !window.google || !window.google.accounts) return false;
+  window.google.accounts.id.initialize({
+    client_id: '800464070591-33nvvitct598mb53dccehl15q8cjm4m9.apps.googleusercontent.com',
+    callback: window.handleGoogleLogin,
+    auto_select: false,
+    cancel_on_tap_outside: true
+  });
+  window.google.accounts.id.renderButton(button, {
+    type: 'icon',
+    shape: 'circle',
+    theme: 'filled_black',
+    size: 'medium'
+  });
+  return true;
+}
+
+window.addEventListener('load', () => {
+  if (initializeGoogleSignIn()) return;
+  let attempts = 0;
+  const timer = window.setInterval(() => {
+    attempts += 1;
+    if (initializeGoogleSignIn() || attempts >= 20) window.clearInterval(timer);
+  }, 250);
+});
+
+logoutBtn.addEventListener('click', () => {
+  sessionStorage.clear();
+  window.location.reload();
+});
+
+userRegistrationForm.addEventListener('submit', async (event) => {
+  event.preventDefault();
+  userStatus.textContent = 'Salvando cliente...';
+  try {
+    const response = await fetch(getApiUrl(`/api/admin/users?adminEmail=${encodeURIComponent(adminEmail)}`), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: userNameInput.value.trim(), email: userEmailInput.value.trim() })
+    });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.message || 'Não foi possível cadastrar o cliente.');
+    userRegistrationForm.reset();
+    userStatus.textContent = 'Cliente cadastrado com sucesso.';
+    loadUsers();
+  } catch (error) {
+    userStatus.textContent = error.message;
+    userStatus.className = 'mini-status error';
+  }
+});
+
+async function loadUsers() {
+  if (!adminEmail || !usersList) return;
+  const response = await fetch(getApiUrl(`/api/admin/users?adminEmail=${encodeURIComponent(adminEmail)}`));
+  if (!response.ok) return;
+  const users = await response.json();
+  usersList.innerHTML = users.length ? users.map(user => `
+    <div class="user-row"><div><strong>${escapeHtml(user.name)}</strong><span>${escapeHtml(user.email)}</span></div>
+    <button class="btn-remove-agent" data-user-id="${user.id}">Remover</button></div>`).join('') : '<span class="empty-state">Nenhum cliente cadastrado.</span>';
+  usersList.querySelectorAll('[data-user-id]').forEach(button => button.addEventListener('click', () => removeUser(button.dataset.userId)));
+}
+
+async function removeUser(id) {
+  const response = await fetch(getApiUrl(`/api/admin/users/${id}?adminEmail=${encodeURIComponent(adminEmail)}`), { method: 'DELETE' });
+  if (response.ok) loadUsers();
+}
+
+const savedEmail = sessionStorage.getItem('alexUserEmail');
+if (savedEmail) {
+  fetch(getApiUrl('/api/access/verify'), { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email: savedEmail }) })
+    .then(response => response.json()).then(data => {
+      if (!data.authorized) return sessionStorage.clear();
+      adminEmail = savedEmail;
+      adminUserName = sessionStorage.getItem('alexUserName') || savedEmail;
+      appContainer.classList.remove('locked');
+      adminLoginArea.style.display = 'none';
+      adminPanel.style.display = 'flex';
+      adminNameEl.textContent = adminUserName;
+      adminTabs.forEach(tab => { tab.style.display = data.admin ? 'inline-flex' : 'none'; });
+      if (data.admin) loadUsers();
+    });
+}
 
 /**
  * Open shutdown confirmation modal.

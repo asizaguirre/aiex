@@ -2,6 +2,7 @@ package com.alexai.platform.controller;
 
 import com.alexai.platform.service.AdminAuthService;
 import com.alexai.platform.service.CustomAgentService;
+import com.alexai.platform.service.UserAccessService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -23,13 +24,22 @@ public class CustomAgentController {
     @Autowired
     private CustomAgentService customAgentService;
 
+    @Autowired
+    private UserAccessService userAccessService;
+
     @GetMapping
     public List<Map<String, Object>> getCustomAgents() {
         return customAgentService.readAgents();
     }
 
     @PostMapping
-    public Map<String, Object> addCustomAgent(@RequestBody Map<String, Object> agentData) throws IOException {
+    public ResponseEntity<?> addCustomAgent(@RequestBody Map<String, Object> agentData) throws IOException {
+        String email = String.valueOf(agentData.getOrDefault("email", ""));
+        if (!adminAuthService.isAdmin(email) && !userAccessService.isAllowed(email)) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body(Map.of("message", "Faça login com um usuário autorizado antes de criar agentes."));
+        }
+
         List<Map<String, Object>> agents = customAgentService.readAgents();
         
         Map<String, Object> newAgent = new HashMap<>(agentData);
@@ -39,7 +49,7 @@ public class CustomAgentController {
 
         agents.add(newAgent);
         customAgentService.writeAgents(agents);
-        return newAgent;
+        return ResponseEntity.status(HttpStatus.CREATED).body(newAgent);
     }
 
     @DeleteMapping("/{id}")

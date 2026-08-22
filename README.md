@@ -44,3 +44,20 @@ Para executar Java e Ollama diretamente no sistema:
 
 Os documentos do RAG ficam em `rag/documents`. A execução pode ser repetida;
 Docker e Ollama preservam os dados e os modelos em volumes locais.
+
+## Acesso e administração
+
+Configure o e-mail do primeiro administrador antes de iniciar o backend:
+
+```bash
+export ADMIN_EMAILS="admin@exemplo.com"
+```
+
+A tela inicial exige login pelo Google. Administradores veem a aba
+`Administração`, onde podem cadastrar os e-mails Google dos clientes. Esses
+clientes passam a acessar o workspace e criar agentes; os registros ficam em
+`USER_DB_PATH` (por padrão, `db/users.json`).
+
+O login usa Google Identity Services. Em produção, substitua o Client ID
+configurado no `index.html` por um Client ID próprio e restrinja as origens
+autorizadas no Google Cloud Console.
