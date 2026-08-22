@@ -45,8 +45,14 @@ install_system_deps() {
 
   log "Instalando dependencias do sistema"
   "${sudo_cmd[@]}" apt-get update
-  "${sudo_cmd[@]}" apt-get install -y ca-certificates curl docker.io docker-compose-plugin openjdk-21-jdk maven python3 python3-venv
-  "${sudo_cmd[@]}" systemctl enable --now docker 2>/dev/null || true
+  local packages=(ca-certificates curl openjdk-21-jdk maven python3 python3-venv)
+  if [[ "$MODE" == "docker" ]]; then
+    packages+=(docker.io docker-compose-plugin)
+  fi
+  "${sudo_cmd[@]}" apt-get install -y "${packages[@]}"
+  if [[ "$MODE" == "docker" ]]; then
+    "${sudo_cmd[@]}" systemctl enable --now docker 2>/dev/null || true
+  fi
 
   if [[ "$MODE" == "local" ]] && ! command_exists ollama; then
     log "Instalando Ollama"
@@ -61,9 +67,11 @@ check_dependencies() {
     docker compose version >/dev/null 2>&1 || missing+=("docker compose")
   else
     command_exists java || missing+=(java)
-    command_exists mvn || missing+=(maven)
     command_exists curl || missing+=(curl)
     command_exists ollama || missing+=(ollama)
+    if ! command_exists mvn && ! command_exists docker; then
+      missing+=("maven ou docker")
+    fi
   fi
 
   if (( ${#missing[@]} > 0 )); then
@@ -143,13 +151,25 @@ start_local() {
   ollama pull "$RAG_MODEL"
   ollama pull "$EMBEDDING_MODEL"
 
-  log "Construindo backend"
-  (cd "$BACKEND_DIR" && mvn -B -DskipTests package)
-  log "Iniciando backend local"
   export PORT OLLAMA_URL="${OLLAMA_URL:-http://localhost:11434}" OLLAMA_MODEL
-  java -jar "$BACKEND_DIR/target/alex-platform-2.0.0.jar" &
-  BACKEND_PID=$!
-  trap 'kill "$BACKEND_PID" 2>/dev/null || true' EXIT
+  if command_exists mvn; then
+    log "Construindo backend com Maven local"
+    (cd "$BACKEND_DIR" && mvn -B -DskipTests package)
+    log "Iniciando backend local"
+    java -jar "$BACKEND_DIR/target/alex-platform-2.0.0.jar" &
+    BACKEND_PID=$!
+    trap 'kill "$BACKEND_PID" 2>/dev/null || true' EXIT
+  else
+    log "Maven ausente; construindo e executando somente o backend em Docker"
+    docker build -t alex-platform-local "$BACKEND_DIR"
+    docker run --rm --name alex-platform-local --network host \
+      -e PORT="$PORT" -e OLLAMA_URL="$OLLAMA_URL" -e OLLAMA_MODEL="$OLLAMA_MODEL" \
+      -v "$ROOT_DIR/db:/IA/workspace/alex-platform-v2/db" \
+      -v "$ROOT_DIR/rag:/IA/workspace/alex-platform-v2/rag" \
+      alex-platform-local &
+    BACKEND_PID=$!
+    trap 'docker stop alex-platform-local >/dev/null 2>&1 || true; kill "$BACKEND_PID" 2>/dev/null || true' EXIT
+  fi
   wait_for_http "http://localhost:${PORT}/actuator/health"
   open_browser
   log "Plataforma pronta em http://localhost:${PORT}"
