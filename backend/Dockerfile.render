@@ -1,0 +1,38 @@
+# Build stage
+FROM eclipse-temurin:21-jdk AS build
+
+WORKDIR /build
+
+COPY pom.xml .
+COPY src ./src
+
+RUN apt-get update && apt-get install -y maven && mvn -B -DskipTests package
+
+# Runtime stage with WireGuard support
+FROM eclipse-temurin:21-jre-jammy
+
+WORKDIR /app
+
+# Install WireGuard and utilities
+RUN apt-get update && apt-get install -y \
+    wireguard \
+    wireguard-tools \
+    iproute2 \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+# Enable IP forwarding
+RUN echo "net.ipv4.ip_forward=1" >> /etc/sysctl.conf
+
+# Copy jar from build
+COPY --from=build /build/target/*.jar /app/app.jar
+
+# Copy startup script
+COPY backend/startup.sh /app/startup.sh
+RUN chmod +x /app/startup.sh
+
+# Expose port
+EXPOSE 8080
+
+# Startup command
+ENTRYPOINT ["/app/startup.sh"]

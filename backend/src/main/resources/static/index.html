@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AlEx Platform v2 - Dashboard Inteligente</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;600&family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css" />
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
+</head>
+<body>
+  <div class="app-container">
+    <header class="app-header">
+      <div class="header-logo">
+        <div class="logo-orb"></div>
+        <h1>AlEx Platform <span>v2.0</span></h1>
+      </div>
+      <p class="header-subtitle">Ecossistema Inteligente de Agentes Autônomos (Alia & Alex)</p>
+
+      <!-- Admin Zone: Login + Shutdown -->
+      <div class="admin-zone">
+        <!-- Google Sign-In (compact) -->
+        <div id="adminLoginArea">
+          <div id="g_id_onload"
+               data-client_id="800464070591-33nvvitct598mb53dccehl15q8cjm4m9.apps.googleusercontent.com"
+               data-callback="handleGoogleLogin"
+               data-auto_prompt="false">
+          </div>
+          <div class="g_id_signin"
+               data-type="icon"
+               data-shape="circle"
+               data-theme="filled_black"
+               data-size="medium">
+          </div>
+        </div>
+
+        <!-- Admin info + Shutdown button (hidden until authenticated) -->
+        <div id="adminPanel" class="admin-panel" style="display: none;">
+          <div class="admin-info">
+            <img id="adminAvatar" class="admin-avatar" src="" alt="Admin" />
+            <span id="adminName" class="admin-name"></span>
+          </div>
+          <button id="shutdownBtn" class="btn-shutdown" title="Desligar Plataforma">
+            <span class="shutdown-icon">⏻</span>
+            <span class="shutdown-text">Desligar</span>
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <div class="dashboard-grid">
+      <!-- Painel Esquerdo: Configurações & Fontes de Dados -->
+      <aside class="sidebar-panel glass-card">
+        <div class="sidebar-section">
+          <h2><span class="icon">👤</span> Selecionar Agente
+            <span class="help-tip">?
+              <span class="tooltip-text">Escolha qual agente irá processar sua solicitação. <strong>Alex</strong> é especialista em engenharia de software. <strong>Alia</strong> é especialista em estratégia e RAG.</span>
+            </span>
+          </h2>
+          <div class="agent-selector">
+            <label class="agent-card alex-card">
+              <input type="radio" name="agent" value="alex" checked />
+              <div class="agent-card-content">
+                <span class="agent-avatar">👨‍💻</span>
+                <div class="agent-details">
+                  <strong>Alex</strong>
+                  <span>Software Engineer</span>
+                </div>
+              </div>
+            </label>
+            <label class="agent-card alia-card">
+              <input type="radio" name="agent" value="alia" />
+              <div class="agent-card-content">
+                <span class="agent-avatar">👩‍💼</span>
+                <div class="agent-details">
+                  <strong>Alia</strong>
+                  <span>Product & RAG Specialist</span>
+                </div>
+              </div>
+            </label>
+          </div>
+          <button id="openAgentPopupBtn" class="btn-primary" style="width: 100%; margin-top: 15px; background: #21262d; border: 1px solid var(--border-color); color: var(--text-primary); font-size: 13px;">
+            🔭 Demo: Agente Observador
+          </button>
+        </div>
+
+        <div class="sidebar-section">
+          <h2><span class="icon">📁</span> Ingestão RAG
+            <span class="help-tip">?
+              <span class="tooltip-text">Envie documentos (PDF, TXT, DOCX) para &quot;ensinar&quot; os agentes. Eles usarão esse conhecimento nas respostas — chamamos isso de Retrieval-Augmented Generation (RAG).</span>
+            </span>
+          </h2>
+          <p class="section-desc">Envie documentos para guiar o comportamento de Alia ou Alex.</p>
+          <form id="ragUploadForm" class="upload-form">
+            <div class="file-drop-area">
+              <input type="file" id="ragFile" required />
+              <span class="file-msg">Selecionar arquivo (PDF, TXT, DOCX)</span>
+            </div>
+            <button type="submit" class="btn-secondary">Enviar para o RAG</button>
+          </form>
+          <div id="ragStatus" class="mini-status"></div>
+        </div>
+
+        <div class="sidebar-section">
+          <h2><span class="icon">💾</span> Fonte da Verdade
+            <span class="help-tip">?
+              <span class="tooltip-text">Banco de dados centralizado de fatos e regras do negócio. Os agentes consultam aqui antes de responder, garantindo precisão e consistência.</span>
+            </span>
+          </h2>
+          <p class="section-desc">Insira registros na base de dados centralizada.</p>
+          <div class="db-form">
+            <input type="text" id="dbTitle" placeholder="Título (ex: Regra de Frete)" />
+            <textarea id="dbContent" rows="2" placeholder="Conteúdo do fato/registro..."></textarea>
+            <button id="dbSaveBtn" class="btn-secondary">Adicionar ao DB</button>
+          </div>
+          <div id="dbStatus" class="mini-status"></div>
+        </div>
+
+        <div class="sidebar-section">
+          <h2><span class="icon">🤖</span> Criar Novo Agente
+            <span class="help-tip">?
+              <span class="tooltip-text">Instrua Alia para instanciar um agente especializado sob demanda. Você define o nome e objetivo — Alia e Alex montam e ativam o agente automaticamente.</span>
+            </span>
+          </h2>
+          <p class="section-desc">Instrua Alia a instanciar um novo agente sob demanda.</p>
+          <div class="agent-creator-form">
+            <input type="text" id="customAgentName" placeholder="Nome do Agente (ex: CRM Agent)" />
+            <input type="text" id="customAgentRole" placeholder="Função / Objetivo" />
+            <button id="createAgentBtn" class="btn-secondary">Criar Agente</button>
+          </div>
+          <div id="creatorStatus" class="mini-status"></div>
+        </div>
+
+        <div class="sidebar-section">
+          <h2><span class="icon">🦾</span> Agentes Ativos
+            <span class="help-tip">?
+              <span class="tooltip-text">Lista de agentes já criados e disponíveis nesta sessão. Clique em um agente para abrir o chat direto com ele.</span>
+            </span>
+          </h2>
+          <p class="section-desc">Agentes gerados na base pela Alia.</p>
+          <div id="customAgentsList" class="custom-agents-list">
+            <!-- Renderizados via JS -->
+          </div>
+        </div>
+      </aside>
+
+      <!-- Painel Central: Chat e Sandbox de Telas Dinâmicas -->
+      <main class="main-panel">
+        
+        <!-- Tabs de Navegação Dinâmica -->
+        <div class="main-tabs">
+          <button class="tab-btn active" data-target="chatTab">💬 Builder Chat</button>
+        </div>
+
+        <!-- Interface de Chat -->
+        <section class="chat-section glass-card tab-content active" id="chatTab">
+          <div class="chat-header">
+            <h2>💬 Central de Mensagens</h2>
+            <div style="display: flex; align-items: center; gap: 8px; margin-left: auto;">
+              <button id="voiceToggleBtn" class="voice-toggle-btn" title="Ativar/desativar resposta por voz">🔇 Voz</button>
+              <div id="chatStatusText" class="chat-status-indicator">Pronto</div>
+            </div>
+          </div>
+          
+          <div class="chat-history" id="chatHistory">
+            <div class="chat-bubble assistant">
+              <strong>ALIA & ALEX</strong>
+              <div>Olá! Eu sou a Alia e este é o Alex. Peça para criarmos uma tela ou iniciarmos um agente observador (como o do Blackjack)!</div>
+            </div>
+          </div>
+
+          <div class="chat-input-area">
+            <textarea id="message" placeholder="Ex: 'Inicie um agente de observação' ou 'Crie uma tela'..." rows="3"></textarea>
+            <div class="input-actions">
+              <span id="status" class="status-msg"></span>
+              <button id="sendBtn" class="btn-primary">Enviar Mensagem</button>
+            </div>
+          </div>
+        </section>
+      </main>
+
+      <!-- Painel Direito: Pipeline do Alex & Métricas -->
+      <aside class="right-panel glass-card">
+          <h2>⚙️ Monitor de Pipeline
+            <span class="help-tip">?
+              <span class="tooltip-text">Visualiza o fluxo de trabalho interno dos agentes: Ingestão de dados → Síntese da resposta → Otimização → Testes → Deploy de novos agentes.</span>
+            </span>
+          </h2>
+        <p class="section-desc">Visualização do fluxo de deploy e otimização em tempo real.</p>
+        
+        <div class="pipeline-stepper">
+          <div class="step" id="step-ingest">
+            <div class="step-icon">1</div>
+            <div class="step-label">Ingestão</div>
+          </div>
+          <div class="step" id="step-gen">
+            <div class="step-icon">2</div>
+            <div class="step-label">Síntese</div>
+          </div>
+          <div class="step" id="step-opt">
+            <div class="step-icon">3</div>
+            <div class="step-label">Otimização</div>
+          </div>
+          <div class="step" id="step-test">
+            <div class="step-icon">4</div>
+            <div class="step-label">Testes</div>
+          </div>
+          <div class="step" id="step-deploy">
+            <div class="step-icon">5</div>
+            <div class="step-label">Deploy</div>
+          </div>
+        </div>
+
+        <div class="pipeline-logs-wrapper">
+          <h3>Logs da Pipeline</h3>
+          <div class="pipeline-logs" id="pipelineLogs">
+            <div class="log-entry system">Aguardando solicitação para iniciar pipeline...</div>
+          </div>
+        </div>
+
+        <div class="metrics-grid">
+          <div class="metric-card">
+            <span class="metric-val" id="metric-build">--</span>
+            <span class="metric-lbl">Build Time</span>
+          </div>
+          <div class="metric-card">
+            <span class="metric-val" id="metric-size">--</span>
+            <span class="metric-lbl">Tamanho Código</span>
+          </div>
+          <div class="metric-card">
+            <span class="metric-val highlight" id="metric-savings">--</span>
+            <span class="metric-lbl">Redução Memória</span>
+          </div>
+          <div class="metric-card">
+            <span class="metric-val" id="metric-perf">--</span>
+            <span class="metric-lbl">Lighthouse Perf</span>
+          </div>
+        </div>
+
+        <div class="optimization-diff-wrapper">
+          <h3>Otimização de Código</h3>
+          <pre class="diff-view" id="diffView">Nenhuma otimização pendente.</pre>
+        </div>
+      </aside>
+    </div>
+  </div>
+
+  <!-- Toast Notification -->
+  <div id="toast" class="toast"></div>
+
+  <!-- Floating Agent Browser Popup —— Demonstração do Agente Observador -->
+  <div id="agentPopup" class="agent-popup glass-card" style="display: none;">
+    <div class="agent-popup-header" id="agentPopupHeader">
+      <h2 style="margin: 0; font-size: 15px;">🔭 Demonstração: Agente Observador</h2>
+      <span class="help-tip" style="margin-left: 8px;">?
+        <span class="tooltip-text">Exemplo de Agente Observador construído por Alia e Alex. Carregue qualquer URL e a lente captura a área visual para o Motor de Raciocínio processar.</span>
+      </span>
+      <div style="flex: 1;"></div>
+      <button id="closePopupBtn" class="btn-close-modal" title="Fechar">✖</button>
+    </div>
+    
+    <div class="demo-info-banner">
+      <span>💡</span>
+      <div>Este é um <strong>exemplo</strong> do que Alex e Alia podem construir. Troque a URL abaixo para observar qualquer sistema — cassino, dashboard, ERP, site de clientes.</div>
+    </div>
+
+    <div class="agent-popup-toolbar" style="display: flex; gap: 8px; padding: 10px; border-bottom: 1px solid var(--border-color);">
+      <input type="text" id="browserUrl" placeholder="Cole aqui a URL a observar…" style="flex: 1; padding: 6px 12px; border-radius: 6px; border: 1px solid var(--border-color); background: rgba(0,0,0,0.3); color: white; font-size: 13px;" />
+      <button id="loadBrowserBtn" class="btn-secondary">Carregar</button>
+      <button id="startPredictionsBtn" class="btn-primary" style="background: #1a7f37; border-color: #1a7f37; font-size: 13px;">▶ Analisar</button>
+    </div>
+    
+    <div class="browser-split-view" style="flex: 1; height: calc(100% - 120px); min-height: 0; margin: 10px; padding-bottom: 10px; gap: 10px;">
+      <div class="agent-vision-panel" style="flex: 0 0 220px;">
+        <h3 style="font-size: 13px; margin-bottom: 8px;">📡 Raciocínio do Agente
+          <span class="help-tip">?
+            <span class="tooltip-text">Logs em tempo real do que o agente está observando e decidindo. As coordenadas da lente são enviadas ao Motor K para análise.</span>
+          </span>
+        </h3>
+        <div id="agentVisionLogs" class="vision-logs"></div>
+      </div>
+      
+      <div class="sandbox-container" id="sandboxContainer" style="position: relative; overflow: hidden; resize: none;">
+        <iframe id="targetIframe" src="about:blank" style="width: 100%; height: 100%; border: none; background: #fff; border-radius: 8px;"></iframe>
+        <div id="visionOverlay" class="draggable-overlay" style="display: none;">
+          <div class="overlay-header">Lente OCR — Arraste para Posicionar</div>
+          <div class="scanner-laser" id="scannerLaser" style="display:none;"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Agent Chat Modal -->
+  <div id="agentModal" class="agent-modal-overlay" style="display: none;">
+    <div class="agent-modal glass-card">
+      <div class="agent-modal-header">
+        <div class="agent-modal-info">
+          <h2 id="agentModalTitle">Agent Name</h2>
+          <span id="agentModalRole">Agent Role</span>
+        </div>
+        <button id="agentModalCloseBtn" class="btn-close-modal" title="Fechar">✖</button>
+      </div>
+      
+      <div class="chat-history agent-modal-chat" id="agentModalChat">
+        <div class="message assistant">
+          Olá! Eu sou o <strong id="agentModalWelcomeName">Agent Name</strong>. Como posso ajudar?
+        </div>
+      </div>
+      
+      <div class="agent-modal-input-area">
+        <textarea id="agentModalInput" placeholder="Digite sua mensagem para este agente..." rows="2"></textarea>
+        <div class="agent-modal-actions">
+          <button id="agentModalMicBtn" class="btn-icon" title="Falar (Microfone)">🎙️</button>
+          <button id="agentModalSpeakerBtn" class="btn-icon active" title="Ativar/Desativar Áudio">🔊</button>
+          <button id="agentModalSendBtn" class="btn-primary">Enviar</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Shutdown Confirmation Modal -->
+  <div id="shutdownModal" class="shutdown-modal-overlay" style="display: none;">
+    <div class="shutdown-modal glass-card">
+      <div class="shutdown-modal-icon">⏻</div>
+      <h2>Desligar AlEx Platform v2?</h2>
+      <p>Esta ação irá encerrar todos os serviços da plataforma. Apenas administradores autorizados podem executar este comando.</p>
+      <div id="shutdownConfirmInfo" class="shutdown-confirm-info"></div>
+      <div class="shutdown-modal-actions">
+        <button id="shutdownCancel" class="btn-secondary">Cancelar</button>
+        <button id="shutdownConfirm" class="btn-shutdown-confirm">Confirmar Shutdown</button>
+      </div>
+      <div id="shutdownProgress" class="shutdown-progress" style="display: none;">
+        <div class="shutdown-progress-bar"></div>
+        <p id="shutdownMessage">Desligando plataforma...</p>
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

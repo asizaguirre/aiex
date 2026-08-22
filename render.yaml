@@ -1,0 +1,7 @@
+services:
+  - type: web
+    name: alex-platform-v2
+    env: docker
+    dockerfilePath: backend/Dockerfile.render
+    plan: starter
+    autoDeploy: true

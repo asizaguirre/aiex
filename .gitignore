@@ -1,0 +1,41 @@
+# Java
+
+target/
+
+*.jar
+
+.venv/
+
+.env.wireguard
+wireguard-config/wg_confs/*.conf
+__pycache__/
+*.pyc
+rag/vectorstore/
+data/docs/*.pdf
+
+
+# IDE
+
+.idea/
+
+.vscode/
+
+
+# Environment
+
+.env
+
+
+# Logs
+
+*.log
+
+
+# OS
+
+.DS_Store
+
+
+# Backups
+
+*.backup.*
