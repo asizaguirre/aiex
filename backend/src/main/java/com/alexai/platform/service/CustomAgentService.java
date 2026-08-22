@@ -49,4 +49,13 @@ public class CustomAgentService {
         }
         return null;
     }
+
+    public Map<String, Object> getAgentByNameAndOwner(String name, String ownerEmail) {
+        if (name == null || name.isBlank() || ownerEmail == null || ownerEmail.isBlank()) return null;
+        return readAgents().stream()
+                .filter(agent -> name.equalsIgnoreCase(String.valueOf(agent.get("name"))))
+                .filter(agent -> ownerEmail.equalsIgnoreCase(String.valueOf(agent.get("ownerEmail"))))
+                .findFirst()
+                .orElse(null);
+    }
 }

@@ -17,10 +17,14 @@ public class AgentService {
 
     private final OllamaClient ollamaClient;
     private final CustomAgentService customAgentService;
+    private final AdminAuthService adminAuthService;
+    private final UserAccessService userAccessService;
 
-    public AgentService(OllamaClient ollamaClient, CustomAgentService customAgentService) {
+    public AgentService(OllamaClient ollamaClient, CustomAgentService customAgentService, AdminAuthService adminAuthService, UserAccessService userAccessService) {
         this.ollamaClient = ollamaClient;
         this.customAgentService = customAgentService;
+        this.adminAuthService = adminAuthService;
+        this.userAccessService = userAccessService;
     }
 
     public ChatResponse execute(ChatRequest request) {
@@ -72,7 +76,13 @@ public class AgentService {
             ragDetails.add("Alex cria pipelines e refatora código para as necessidades do cliente.");
         } else {
             // Busca o custom agent
-            Map<String, Object> customAgent = customAgentService.getAgentByName(agent);
+            Map<String, Object> customAgent = customAgentService.getAgentByNameAndOwner(agent, request.getEmail());
+            if (customAgent == null && adminAuthService.isAdmin(request.getEmail())) {
+                customAgent = customAgentService.getAgentByName(agent);
+            }
+            if (customAgent == null && !adminAuthService.isAdmin(request.getEmail())) {
+                return new ChatResponse(agent, "Este agente não está disponível nesta sessão privada.", systemPromptForDenied(agent), List.of("Acesso privado"));
+            }
             if (customAgent != null) {
                 String name = (String) customAgent.get("name");
                 String role = (String) customAgent.get("role");
@@ -106,6 +116,10 @@ public class AgentService {
                 systemPrompt,
                 ragDetails
         );
+    }
+
+    private String systemPromptForDenied(String agent) {
+        return "Acesso privado ao agente " + agent;
     }
 
     private String getRagAndDbContext() {

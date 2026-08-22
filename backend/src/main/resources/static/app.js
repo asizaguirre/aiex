@@ -161,7 +161,8 @@ agentModalSendBtn.addEventListener('click', async () => {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         agent: currentCustomAgent,
-        message: message
+        message: message,
+        email: adminEmail || sessionStorage.getItem('alexUserEmail')
       })
     });
     
@@ -228,6 +229,39 @@ const userNameInput = document.getElementById('userName');
 const userEmailInput = document.getElementById('userEmail');
 const usersList = document.getElementById('usersList');
 const userStatus = document.getElementById('userStatus');
+const agentBuilderTab = document.getElementById('agentBuilderTab');
+const agentBuilderTabButton = document.querySelector('[data-target="agentBuilderTab"]');
+const closeAgentBuilderBtn = document.getElementById('closeAgentBuilderBtn');
+const builderAgentName = document.getElementById('builderAgentName');
+const builderAgentGoal = document.getElementById('builderAgentGoal');
+const builderRequirements = document.getElementById('builderRequirements');
+const buildAgentBtn = document.getElementById('buildAgentBtn');
+const builderStatus = document.getElementById('builderStatus');
+const builderChatHistory = document.getElementById('builderChatHistory');
+const builderChatInput = document.getElementById('builderChatInput');
+const builderChatSendBtn = document.getElementById('builderChatSendBtn');
+const publicPageForm = document.getElementById('publicPageForm');
+const pageSlug = document.getElementById('pageSlug');
+const pageTitle = document.getElementById('pageTitle');
+const pageContent = document.getElementById('pageContent');
+const pageStatus = document.getElementById('pageStatus');
+const publicPagesList = document.getElementById('publicPagesList');
+const publishPageBtn = document.getElementById('publishPageBtn');
+const cancelPageEditBtn = document.getElementById('cancelPageEditBtn');
+let editingPageSlug = null;
+const pageEditorTab = document.getElementById('pageEditorTab');
+const pageEditorForm = document.getElementById('pageEditorForm');
+const editorPageSlug = document.getElementById('editorPageSlug');
+const editorPageTitle = document.getElementById('editorPageTitle');
+const editorPageContent = document.getElementById('editorPageContent');
+const editorStatus = document.getElementById('editorStatus');
+const editorPreview = document.getElementById('editorPreview');
+const editorPreviewUrl = document.getElementById('editorPreviewUrl');
+const closePageEditorBtn = document.getElementById('closePageEditorBtn');
+const previewPageBtn = document.getElementById('previewPageBtn');
+const editorChatInput = document.getElementById('editorChatInput');
+const editorChatSendBtn = document.getElementById('editorChatSendBtn');
+const editorChatHistory = document.getElementById('editorChatHistory');
 
 // Sandbox Elements
 const sandboxSection = document.getElementById('sandboxSection');
@@ -409,47 +443,80 @@ dbSaveBtn.addEventListener('click', async () => {
 
 // 3. Create Custom Agent simulation and persistence
 createAgentBtn.addEventListener('click', async () => {
-  const name = customAgentName.value.trim();
-  const role = customAgentRole.value.trim();
-  if (!name || !role) {
-    creatorStatus.textContent = 'Preencha nome e função.';
-    creatorStatus.className = 'mini-status error';
+  const email = adminEmail || sessionStorage.getItem('alexUserEmail');
+  if (!email) { showToast('Autentique-se para construir um agente.'); return; }
+  window.location.href = '/?mode=agent-builder';
+});
+
+function showAgentBuilder() {
+  document.querySelectorAll('.tab-btn').forEach(button => button.classList.remove('active'));
+  document.querySelectorAll('.tab-content').forEach(content => { content.classList.remove('active'); content.style.display = 'none'; });
+  agentBuilderTabButton.style.display = 'inline-flex';
+  agentBuilderTabButton.classList.add('active');
+  agentBuilderTab.classList.add('active');
+  agentBuilderTab.style.display = 'flex';
+}
+
+function activateWorkspaceMode() {
+  const mode = new URLSearchParams(window.location.search).get('mode');
+  if (mode === 'agent-builder') {
+    showAgentBuilder();
+    builderPrompt();
+  } else if (mode === 'agents') {
+    const agentsButton = document.querySelector('[data-target="agentsTab"]');
+    if (agentsButton) agentsButton.click();
+  }
+}
+
+function addBuilderMessage(author, text) {
+  const message = document.createElement('div');
+  message.className = `builder-message ${author === 'Você' ? 'user' : 'assistant'}`;
+  message.innerHTML = `<strong>${escapeHtml(author)}</strong><div>${escapeHtml(text).replace(/\n/g, '<br>')}</div>`;
+  builderChatHistory.appendChild(message);
+  builderChatHistory.scrollTop = builderChatHistory.scrollHeight;
+}
+
+function builderPrompt() {
+  addBuilderMessage('Alia', 'Para construir um agente realmente útil, vou entender: quem usará, qual problema ele resolve, quais entradas receberá, que resposta ou ação deve entregar, quais fontes poderá consultar, quais limites deve respeitar e como saberemos que funcionou. Conte primeiro o objetivo e o público.');
+}
+
+builderChatSendBtn.addEventListener('click', async () => {
+  const message = builderChatInput.value.trim();
+  if (!message) return;
+  addBuilderMessage('Você', message);
+  builderChatInput.value = '';
+  const currentRequirements = builderRequirements.value;
+  const response = await fetch(getApiUrl('/api/chat'), { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ agent: 'alia', email: adminEmail || sessionStorage.getItem('alexUserEmail'), message: `Estamos construindo um agente. Objetivo: ${builderAgentGoal.value}. Requisitos já anotados: ${currentRequirements}. O cliente disse: ${message}. Faça perguntas de descoberta de requisitos que ainda faltam e, ao final, organize uma lista objetiva de requisitos confirmados.` }) });
+  const data = await response.json();
+  addBuilderMessage('Alia', data.response || 'Não foi possível responder agora.');
+  builderRequirements.value = `${builderRequirements.value}${builderRequirements.value ? '\n\n' : ''}Cliente: ${message}\nAlia: ${data.response || ''}`;
+});
+
+builderChatInput.addEventListener('keydown', event => { if (event.key === 'Enter') { event.preventDefault(); builderChatSendBtn.click(); } });
+
+buildAgentBtn.addEventListener('click', async () => {
+  const email = adminEmail || sessionStorage.getItem('alexUserEmail');
+  if (!builderAgentName.value.trim() || !builderAgentGoal.value.trim() || !builderRequirements.value.trim()) {
+    builderStatus.textContent = 'Conclua o objetivo e a descoberta de requisitos com a Alia antes de construir.';
+    builderStatus.className = 'mini-status error';
     return;
   }
-
-  creatorStatus.textContent = 'Criando e persistindo agente...';
-  creatorStatus.className = 'mini-status';
-
-  try {
-    const res = await fetch(getApiUrl('/api/agents/custom'), {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name, role, email: adminEmail || sessionStorage.getItem('alexUserEmail') })
-    });
-
-    if (!res.ok) throw new Error('Falha ao persistir o agente');
-
-    creatorStatus.textContent = `Agente '${name}' criado com sucesso!`;
-    showToast(`Novo Agente ativo: ${name}`);
-    
-    // Append message in chat simulating agent registration
-    appendMessage('SISTEMA', `Novo agente instanciado: [${name}] com objetivo: [${role}]. Ele herdará os contextos do RAG e da Fonte da Verdade.`, 'assistant');
-    
-    customAgentName.value = '';
-    customAgentRole.value = '';
-
-    // Reload the agents list
-    loadCustomAgents();
-  } catch (err) {
-    creatorStatus.textContent = `Erro: ${err.message}`;
-    creatorStatus.className = 'mini-status error';
-  }
+  builderStatus.textContent = 'Alex está construindo e validando o agente...';
+  const response = await fetch(getApiUrl('/api/agents/custom'), { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name: builderAgentName.value.trim(), role: `${builderAgentGoal.value.trim()}\n\nRequisitos: ${builderRequirements.value.trim()}`, email }) });
+  const data = await response.json();
+  if (!response.ok) { builderStatus.textContent = data.message || 'Não foi possível construir o agente.'; builderStatus.className = 'mini-status error'; return; }
+  builderStatus.textContent = 'Agente construído. Abrindo Meus agentes...';
+  setTimeout(() => { window.location.href = '/?mode=agents'; }, 500);
 });
+
+closeAgentBuilderBtn.addEventListener('click', () => { window.location.href = '/'; });
 
 // Custom Agents Loading & Rendering
 async function loadCustomAgents() {
   try {
-    const res = await fetch(getApiUrl('/api/agents/custom'));
+    const email = adminEmail || sessionStorage.getItem('alexUserEmail');
+    if (!email) return;
+    const res = await fetch(getApiUrl(`/api/agents/custom?email=${encodeURIComponent(email)}`));
     if (!res.ok) return;
     const agents = await res.json();
     renderCustomAgents(agents);
@@ -687,7 +754,7 @@ async function sendMessage() {
       headers: {
         'Content-Type': 'application/json'
       },
-      body: JSON.stringify({ agent, message })
+      body: JSON.stringify({ agent, message, email: adminEmail || sessionStorage.getItem('alexUserEmail') })
     });
 
     if (!response.ok) {
@@ -752,6 +819,15 @@ const shutdownProgress = document.getElementById('shutdownProgress');
 const shutdownMessage = document.getElementById('shutdownMessage');
 const logoutBtn = document.getElementById('logoutBtn');
 const adminTabs = document.querySelectorAll('.admin-only');
+const clientOnlyControls = document.querySelectorAll('.client-only');
+const adminOnlyPanels = document.querySelectorAll('.admin-only-panel');
+
+function applyRoleVisibility(isAdmin) {
+  adminTabs.forEach(tab => { tab.style.display = isAdmin ? 'inline-flex' : 'none'; });
+  adminOnlyPanels.forEach(panel => { panel.style.display = isAdmin ? 'flex' : 'none'; });
+  clientOnlyControls.forEach(control => { control.style.display = isAdmin ? 'none' : 'inline-flex'; });
+  if (openAgentPopupBtn) openAgentPopupBtn.style.display = isAdmin ? 'block' : 'none';
+}
 
 /**
  * Decode a JWT token payload (Google ID token).
@@ -811,7 +887,7 @@ window.handleGoogleLogin = async function(response) {
       adminPanel.style.display = 'flex';
       adminAvatar.src = picture;
       adminNameEl.textContent = name;
-      adminTabs.forEach(tab => { tab.style.display = data.admin ? 'inline-flex' : 'none'; });
+      applyRoleVisibility(data.admin);
 
       showToast(data.admin ? `Bem-vindo, ${name}! Modo admin ativo.` : `Bem-vindo, ${name}!`);
       appendMessage('SISTEMA', `🔐 Usuário autenticado: ${name} (${email}).`, 'assistant');
@@ -819,6 +895,9 @@ window.handleGoogleLogin = async function(response) {
       // Update custom agents to show delete buttons
       loadCustomAgents();
       if (data.admin) loadUsers();
+      loadPublicPages();
+      activateWorkspaceMode();
+      loadPageEditor();
     } else {
       showToast(`O e-mail ${email} ainda não está autorizado.`);
     }
@@ -896,6 +975,125 @@ async function removeUser(id) {
   if (response.ok) loadUsers();
 }
 
+publicPageForm.addEventListener('submit', async (event) => {
+  event.preventDefault();
+  const email = adminEmail || sessionStorage.getItem('alexUserEmail');
+  const isEditing = Boolean(editingPageSlug);
+  pageStatus.textContent = isEditing ? 'Salvando edição...' : 'Publicando página...';
+  pageStatus.className = 'mini-status';
+  try {
+    const endpoint = isEditing ? `/api/pages/${encodeURIComponent(editingPageSlug)}?email=${encodeURIComponent(email)}` : `/api/pages?email=${encodeURIComponent(email)}`;
+    const response = await fetch(getApiUrl(endpoint), {
+      method: isEditing ? 'PUT' : 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ slug: pageSlug.value.trim(), title: pageTitle.value.trim(), content: pageContent.value.trim() })
+    });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.message || 'Não foi possível publicar.');
+    const publicUrl = new URL(data.publicUrl, window.location.origin).href;
+    pageStatus.innerHTML = `${isEditing ? 'Edição salva' : 'Página publicada'}: <a href="${publicUrl}" target="_blank" rel="noopener">${publicUrl}</a>`;
+    resetPageEditor();
+    loadPublicPages();
+  } catch (error) {
+    pageStatus.textContent = error.message;
+    pageStatus.className = 'mini-status error';
+  }
+});
+
+async function loadPublicPages() {
+  const email = adminEmail || sessionStorage.getItem('alexUserEmail');
+  if (!email || !publicPagesList) return;
+  const response = await fetch(getApiUrl(`/api/pages?email=${encodeURIComponent(email)}`));
+  if (!response.ok) return;
+  const pages = await response.json();
+  publicPagesList.innerHTML = pages.length ? pages.map(page => {
+    const url = new URL(`/public/${encodeURIComponent(page.slug)}`, window.location.origin).href;
+    return `<div class="public-page-row"><div><strong>${escapeHtml(page.title)}</strong><span>${url}</span></div><div class="public-page-actions"><button type="button" class="btn-open-chat" data-edit-page="${escapeHtml(page.slug)}">Editar</button><a href="${url}" target="_blank" rel="noopener" class="btn-open-chat">Abrir</a><button type="button" class="btn-remove-agent" data-delete-page="${escapeHtml(page.slug)}">Excluir</button></div></div>`;
+  }).join('') : '<span class="empty-state">Nenhuma página publicada ainda.</span>';
+  publicPagesList.querySelectorAll('[data-edit-page]').forEach(button => button.addEventListener('click', () => startPageEdit(pages.find(page => page.slug === button.dataset.editPage))));
+  publicPagesList.querySelectorAll('[data-delete-page]').forEach(button => button.addEventListener('click', () => deletePublicPage(button.dataset.deletePage)));
+}
+
+function startPageEdit(page) {
+  if (!page) return;
+  window.location.href = `/?mode=edit&page=${encodeURIComponent(page.slug)}`;
+}
+
+function showEditorTab() {
+  document.querySelectorAll('.tab-btn').forEach(button => button.classList.remove('active'));
+  document.querySelectorAll('.tab-content').forEach(content => { content.classList.remove('active'); content.style.display = 'none'; });
+  pageEditorTab.classList.add('active');
+  pageEditorTab.style.display = 'flex';
+}
+
+async function loadPageEditor() {
+  const params = new URLSearchParams(window.location.search);
+  const slug = params.get('page');
+  const email = adminEmail || sessionStorage.getItem('alexUserEmail');
+  if (params.get('mode') !== 'edit' || !slug || !email) return;
+  const response = await fetch(getApiUrl(`/api/pages/data/${encodeURIComponent(slug)}?email=${encodeURIComponent(email)}`));
+  if (!response.ok) return;
+  const page = await response.json();
+  editingPageSlug = page.slug;
+  editorPageSlug.value = page.slug;
+  editorPageTitle.value = page.title;
+  editorPageContent.value = page.content;
+  document.getElementById('pageEditorHeading').textContent = `Editando: ${page.title}`;
+  showEditorTab();
+  updateEditorPreview();
+}
+
+function updateEditorPreview() {
+  editorPreviewUrl.textContent = `/public/${editorPageSlug.value || 'endpoint'}`;
+  editorPreview.innerHTML = `<h1>${escapeHtml(editorPageTitle.value || 'Título da página')}</h1><p>${escapeHtml(editorPageContent.value || 'O conteúdo aparecerá aqui.').replace(/\n/g, '<br>')}</p>`;
+}
+
+pageEditorForm.addEventListener('submit', async event => {
+  event.preventDefault();
+  const email = adminEmail || sessionStorage.getItem('alexUserEmail');
+  const response = await fetch(getApiUrl(`/api/pages/${encodeURIComponent(editingPageSlug)}?email=${encodeURIComponent(email)}`), { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ slug: editorPageSlug.value.trim(), title: editorPageTitle.value.trim(), content: editorPageContent.value.trim() }) });
+  const data = await response.json();
+  editorStatus.textContent = response.ok ? `Salvo. Link público: ${new URL(data.publicUrl, window.location.origin).href}` : (data.message || 'Não foi possível salvar.');
+  if (response.ok) { editingPageSlug = data.slug; history.replaceState({}, '', `/?mode=edit&page=${encodeURIComponent(data.slug)}`); updateEditorPreview(); }
+});
+
+previewPageBtn.addEventListener('click', updateEditorPreview);
+editorPageContent.addEventListener('input', updateEditorPreview);
+editorPageTitle.addEventListener('input', updateEditorPreview);
+editorPageSlug.addEventListener('input', updateEditorPreview);
+closePageEditorBtn.addEventListener('click', () => { window.location.href = '/'; });
+
+editorChatSendBtn.addEventListener('click', async () => {
+  const message = editorChatInput.value.trim();
+  if (!message) return;
+  editorChatHistory.innerHTML += `<div class="editor-chat-message user">Você: ${escapeHtml(message)}</div>`;
+  editorChatInput.value = '';
+  const response = await fetch(getApiUrl('/api/chat'), { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ agent: getSelectedAgent(), message: `Estou editando uma página com título "${editorPageTitle.value}" e conteúdo "${editorPageContent.value}". ${message} Responda com uma sugestão prática de edição, sem alterar o conteúdo automaticamente.` }) });
+  const data = await response.json();
+  editorChatHistory.innerHTML += `<div class="editor-chat-message assistant">${escapeHtml(data.response || 'Não foi possível responder agora.')}</div>`;
+  editorChatHistory.scrollTop = editorChatHistory.scrollHeight;
+});
+
+function resetPageEditor() {
+  editingPageSlug = null;
+  publicPageForm.reset();
+  publishPageBtn.textContent = 'Publicar página';
+  cancelPageEditBtn.style.display = 'none';
+}
+
+cancelPageEditBtn.addEventListener('click', resetPageEditor);
+
+async function deletePublicPage(slug) {
+  const email = adminEmail || sessionStorage.getItem('alexUserEmail');
+  if (!window.confirm('Excluir esta página pública? O link deixará de funcionar.')) return;
+  const response = await fetch(getApiUrl(`/api/pages/${encodeURIComponent(slug)}?email=${encodeURIComponent(email)}`), { method: 'DELETE' });
+  if (response.ok) {
+    if (editingPageSlug === slug) resetPageEditor();
+    pageStatus.textContent = 'Página excluída.';
+    loadPublicPages();
+  }
+}
+
 const savedEmail = sessionStorage.getItem('alexUserEmail');
 if (savedEmail) {
   fetch(getApiUrl('/api/access/verify'), { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email: savedEmail }) })
@@ -907,8 +1105,11 @@ if (savedEmail) {
       adminLoginArea.style.display = 'none';
       adminPanel.style.display = 'flex';
       adminNameEl.textContent = adminUserName;
-      adminTabs.forEach(tab => { tab.style.display = data.admin ? 'inline-flex' : 'none'; });
+      applyRoleVisibility(data.admin);
       if (data.admin) loadUsers();
+      loadPublicPages();
+      activateWorkspaceMode();
+      loadPageEditor();
     });
 }
 
@@ -999,6 +1200,26 @@ shutdownConfirm.addEventListener('click', async () => {
 
 const tabBtns = document.querySelectorAll(".tab-btn");
 const tabContents = document.querySelectorAll(".tab-content");
+
+document.querySelectorAll('.help-tip').forEach(helpTip => {
+  helpTip.setAttribute('role', 'button');
+  helpTip.setAttribute('tabindex', '0');
+  const toggleHelp = event => {
+    event.stopPropagation();
+    document.querySelectorAll('.help-tip.is-open').forEach(openTip => {
+      if (openTip !== helpTip) openTip.classList.remove('is-open');
+    });
+    helpTip.classList.toggle('is-open');
+  };
+  helpTip.addEventListener('click', toggleHelp);
+  helpTip.addEventListener('keydown', event => {
+    if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); toggleHelp(event); }
+  });
+});
+
+document.addEventListener('click', () => {
+  document.querySelectorAll('.help-tip.is-open').forEach(helpTip => helpTip.classList.remove('is-open'));
+});
 
 tabBtns.forEach(btn => {
   btn.addEventListener("click", () => {
@@ -1148,7 +1369,7 @@ function dragEnd(e) {
   if (isDragging) {
     // Log the new coordinates when drag stops
     const rect = visionOverlay.getBoundingClientRect();
-    const sandboxRect = document.getElementById('sandboxContainer').getBoundingClientRect();
+    const sandboxRect = document.getElementById('visionSandboxContainer').getBoundingClientRect();
     
     const relX = Math.round(rect.left - sandboxRect.left);
     const relY = Math.round(rect.top - sandboxRect.top);
@@ -1190,7 +1411,7 @@ if (visionOverlay) {
       const width = Math.round(entry.contentRect.width);
       const height = Math.round(entry.contentRect.height);
       const rect = visionOverlay.getBoundingClientRect();
-      const sandboxRect = document.getElementById('sandboxContainer').getBoundingClientRect();
+      const sandboxRect = document.getElementById('visionSandboxContainer').getBoundingClientRect();
       const relX = Math.round(rect.left - sandboxRect.left);
       const relY = Math.round(rect.top - sandboxRect.top);
       

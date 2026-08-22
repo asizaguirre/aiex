@@ -158,6 +158,43 @@ body {
 .users-list { display: grid; gap: 8px; }
 .user-row > div { display: flex; flex-direction: column; gap: 4px; }
 .empty-state { color: var(--text-secondary); font-size: .8rem; }
+.public-page-form { display: grid; gap: 10px; max-width: 720px; }
+.public-page-form input, .public-page-form textarea { width: 100%; }
+.public-page-form-actions, .public-page-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.public-pages-list { display: grid; gap: 8px; margin-top: 20px; }
+.public-page-row { display: flex; align-items: center; justify-content: space-between; gap: 16px; border: 1px solid var(--border-color); border-radius: 8px; padding: 14px 16px; }
+.public-page-row > div { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.public-page-row span { color: var(--color-alex); font: .75rem var(--font-mono); overflow-wrap: anywhere; }
+.public-page-row small { color: var(--text-secondary); max-width: 620px; white-space: pre-wrap; overflow-wrap: anywhere; }
+.public-page-row a { flex: 0 0 auto; text-decoration: none; }
+.page-editor-tab { min-height: 620px; }
+.editor-heading { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 20px; }
+.page-editor-layout { display: grid; grid-template-columns: minmax(0, 1fr) minmax(280px, .85fr); gap: 18px; }
+.page-editor-form { display: grid; gap: 12px; align-content: start; }
+.page-editor-form label { display: grid; gap: 6px; color: var(--text-secondary); font-size: .8rem; }
+.page-editor-form input, .page-editor-form textarea { width: 100%; }
+.editor-assistant { display: grid; grid-template-rows: auto minmax(150px, 1fr) auto; gap: 10px; min-width: 0; }
+.editor-preview-header { display: flex; justify-content: space-between; gap: 10px; color: var(--text-secondary); font-size: .8rem; }
+.editor-preview-header span { color: var(--color-alex); font-family: var(--font-mono); overflow-wrap: anywhere; }
+.editor-preview { min-height: 220px; padding: 22px; border: 1px solid var(--border-color); border-radius: 8px; background: #101820; overflow-wrap: anywhere; }
+.editor-preview h1 { color: var(--color-alex); font: 700 1.5rem var(--font-title); margin-bottom: 14px; }
+.editor-preview p { color: var(--text-secondary); line-height: 1.6; }
+.editor-chat { border-top: 1px solid var(--border-color); padding-top: 12px; }
+.editor-chat-history { height: 130px; overflow: auto; margin: 8px 0; color: var(--text-secondary); font-size: .78rem; line-height: 1.45; }
+.editor-chat-message { padding: 6px 0; white-space: pre-wrap; }
+.editor-chat-message.user { color: var(--text-primary); }
+.editor-chat-input { display: flex; gap: 8px; }
+.editor-chat-input input { min-width: 0; flex: 1; }
+.agent-builder-tab { min-height: 620px; }
+.agent-builder-layout { display: grid; grid-template-columns: minmax(280px, .9fr) minmax(320px, 1.1fr); gap: 20px; }
+.agent-requirements-panel { display: grid; gap: 12px; align-content: start; }
+.agent-requirements-panel label { display: grid; gap: 6px; color: var(--text-secondary); font-size: .8rem; }
+.agent-requirements-panel input, .agent-requirements-panel textarea { width: 100%; }
+.builder-chat-panel { display: grid; grid-template-rows: auto minmax(260px, 1fr) auto; gap: 10px; border: 1px solid var(--border-color); border-radius: 8px; padding: 16px; background: rgba(255,255,255,.025); }
+.builder-chat-history { height: auto; min-height: 260px; margin: 0; }
+.builder-message { padding: 10px 0; border-bottom: 1px solid rgba(48,54,61,.55); font-size: .82rem; }
+.builder-message strong { color: var(--color-alia); display: block; margin-bottom: 5px; }
+.builder-message.user strong { color: var(--color-alex); }
 
 @media (max-width: 1200px) {
   .dashboard-grid {
@@ -176,6 +213,8 @@ body {
     grid-column: span 1;
   }
   .overview-grid, .user-registration-form { grid-template-columns: 1fr; }
+  .page-editor-layout { grid-template-columns: 1fr; }
+  .agent-builder-layout { grid-template-columns: 1fr; }
 }
 
 /* Common sidebar section styles */
@@ -1598,6 +1637,17 @@ textarea {
 
 .help-tip:hover .tooltip-text {
   display: block;
+}
+
+.help-tip.is-open .tooltip-text {
+  display: block;
+  pointer-events: auto;
+}
+
+.right-panel .help-tip .tooltip-text,
+.agent-popup .help-tip .tooltip-text {
+  left: auto;
+  right: 22px;
 }
 
 /* Sidebar sections — tooltip inline with title */

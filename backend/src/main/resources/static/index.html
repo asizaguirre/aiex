@@ -73,7 +73,7 @@
               </div>
             </label>
           </div>
-          <button id="openAgentPopupBtn" class="btn-primary" style="width: 100%; margin-top: 15px; background: #21262d; border: 1px solid var(--border-color); color: var(--text-primary); font-size: 13px;">
+          <button id="openAgentPopupBtn" class="btn-primary admin-only" style="display: none; width: 100%; margin-top: 15px; background: #21262d; border: 1px solid var(--border-color); color: var(--text-primary); font-size: 13px;">
             🔭 Demo: Agente Observador
           </button>
         </div>
@@ -120,7 +120,7 @@
           <div class="agent-creator-form">
             <input type="text" id="customAgentName" placeholder="Nome do Agente (ex: CRM Agent)" />
             <input type="text" id="customAgentRole" placeholder="Função / Objetivo" />
-            <button id="createAgentBtn" class="btn-secondary">Criar Agente</button>
+            <button id="createAgentBtn" class="btn-secondary">Construir com Alia</button>
           </div>
           <div id="creatorStatus" class="mini-status"></div>
         </div>
@@ -146,6 +146,8 @@
           <button class="tab-btn active" data-target="overviewTab">Visão geral</button>
           <button class="tab-btn" data-target="chatTab">Builder Chat</button>
           <button class="tab-btn" data-target="agentsTab">Meus agentes</button>
+          <button class="tab-btn" data-target="agentBuilderTab" style="display: none;">Construir agente</button>
+          <button class="tab-btn client-only" data-target="publishTab">Publicar página</button>
           <button class="tab-btn admin-only" data-target="adminTab" style="display: none;">Administração</button>
         </div>
 
@@ -188,10 +190,64 @@
           </div>
         </section>
 
+        <section class="sandbox-section glass-card" id="sandboxSection" style="display: none;">
+          <div class="sandbox-header">
+            <h2>Tela dinâmica gerada</h2>
+            <button id="finishScreenBtn" class="btn-danger" type="button">Finalizar tela</button>
+          </div>
+          <div class="sandbox-container" id="sandboxContainer"></div>
+        </section>
+
         <section class="tab-content glass-card" id="agentsTab" style="display: none;">
           <h2>Seus agentes</h2>
           <p class="section-desc">Agentes criados neste workspace. Selecione um para conversar ou volte ao Builder Chat para criar outro.</p>
           <div id="agentsTabList" class="custom-agents-list"></div>
+        </section>
+
+        <section class="tab-content glass-card agent-builder-tab" id="agentBuilderTab" style="display: none;">
+          <div class="editor-heading"><div><span class="eyebrow">SESSÃO PRIVADA DE CONSTRUÇÃO</span><h2>Alia descobre. Alex constrói.</h2></div><button id="closeAgentBuilderBtn" type="button" class="btn-secondary">Voltar</button></div>
+          <div class="agent-builder-layout">
+            <div class="agent-requirements-panel">
+              <h3>Especificação do agente</h3>
+              <p class="section-desc">Responda às perguntas da Alia. Você poderá revisar tudo antes de autorizar a construção.</p>
+              <label>Nome do agente<input id="builderAgentName" placeholder="Ex.: Assistente de vendas" required /></label>
+              <label>Objetivo principal<input id="builderAgentGoal" placeholder="O que este agente deve resolver?" required /></label>
+              <label>Requisitos reunidos<textarea id="builderRequirements" rows="9" placeholder="A Alia organizará aqui as necessidades, usuários, entradas, saídas e critérios de sucesso."></textarea></label>
+              <button id="buildAgentBtn" class="btn-primary" type="button">Construir com Alex</button>
+              <div id="builderStatus" class="mini-status"></div>
+            </div>
+            <div class="builder-chat-panel"><div class="editor-preview-header"><strong>Alia · Analista de requisitos</strong><span>disponível</span></div><div id="builderChatHistory" class="editor-chat-history builder-chat-history"></div><div class="editor-chat-input"><input id="builderChatInput" placeholder="Responda à Alia ou tire uma dúvida..." /><button id="builderChatSendBtn" class="btn-primary" type="button">Enviar</button></div></div>
+          </div>
+        </section>
+
+        <section class="tab-content glass-card" id="publishTab" style="display: none;">
+          <h2>Publicar uma página</h2>
+          <p class="section-desc">Crie um endereço personalizado para compartilhar o resultado do que você pediu ao agente. Quem tiver o link poderá visualizar sem login.</p>
+          <form id="publicPageForm" class="public-page-form">
+            <input type="text" id="pageSlug" placeholder="endpoint-da-minha-pagina" pattern="[a-z0-9]+(?:-[a-z0-9]+)*" required />
+            <input type="text" id="pageTitle" placeholder="Título da página" required />
+            <textarea id="pageContent" rows="7" placeholder="Conteúdo que será exibido para as pessoas com o link..." required></textarea>
+            <div class="public-page-form-actions">
+              <button type="submit" id="publishPageBtn" class="btn-primary">Publicar página</button>
+              <button type="button" id="cancelPageEditBtn" class="btn-secondary" style="display: none;">Cancelar edição</button>
+            </div>
+          </form>
+          <div id="pageStatus" class="mini-status"></div>
+          <div id="publicPagesList" class="public-pages-list"></div>
+        </section>
+
+        <section class="tab-content glass-card page-editor-tab" id="pageEditorTab" style="display: none;">
+          <div class="editor-heading"><div><span class="eyebrow">MODO DE EDIÇÃO</span><h2 id="pageEditorHeading">Editar página</h2></div><button type="button" id="closePageEditorBtn" class="btn-secondary">Voltar às páginas</button></div>
+          <div class="page-editor-layout">
+            <form id="pageEditorForm" class="page-editor-form">
+              <label>Endpoint<input type="text" id="editorPageSlug" pattern="[a-z0-9]+(?:-[a-z0-9]+)*" required /></label>
+              <label>Título<input type="text" id="editorPageTitle" required /></label>
+              <label>Conteúdo<textarea id="editorPageContent" rows="13" required></textarea></label>
+              <div class="public-page-form-actions"><button type="submit" class="btn-primary">Salvar e publicar</button><button type="button" id="previewPageBtn" class="btn-secondary">Atualizar prévia</button></div>
+              <div id="editorStatus" class="mini-status"></div>
+            </form>
+            <div class="editor-assistant"><div class="editor-preview-header"><strong>Prévia pública</strong><span id="editorPreviewUrl"></span></div><div id="editorPreview" class="editor-preview"></div><div class="editor-chat"><strong>Alex & Alia</strong><div id="editorChatHistory" class="editor-chat-history"><span>Descreva uma mudança ou tire uma dúvida sobre esta página.</span></div><div class="editor-chat-input"><input id="editorChatInput" placeholder="Ex.: deixe o texto mais claro..." /><button id="editorChatSendBtn" class="btn-primary" type="button">Enviar</button></div></div></div>
+          </div>
         </section>
 
         <section class="tab-content glass-card admin-tab" id="adminTab" style="display: none;">
@@ -207,7 +263,7 @@
       </main>
 
       <!-- Painel Direito: Pipeline do Alex & Métricas -->
-      <aside class="right-panel glass-card">
+      <aside class="right-panel glass-card admin-only-panel" style="display: none;">
           <h2>⚙️ Monitor de Pipeline
             <span class="help-tip">?
               <span class="tooltip-text">Visualiza o fluxo de trabalho interno dos agentes: Ingestão de dados → Síntese da resposta → Otimização → Testes → Deploy de novos agentes.</span>
@@ -307,7 +363,7 @@
         <div id="agentVisionLogs" class="vision-logs"></div>
       </div>
       
-      <div class="sandbox-container" id="sandboxContainer" style="position: relative; overflow: hidden; resize: none;">
+      <div class="sandbox-container" id="visionSandboxContainer" style="position: relative; overflow: hidden; resize: none;">
         <iframe id="targetIframe" src="about:blank" style="width: 100%; height: 100%; border: none; background: #fff; border-radius: 8px;"></iframe>
         <div id="visionOverlay" class="draggable-overlay" style="display: none;">
           <div class="overlay-header">Lente OCR — Arraste para Posicionar</div>

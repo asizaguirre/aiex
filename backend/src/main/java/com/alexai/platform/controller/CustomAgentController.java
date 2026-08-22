@@ -28,8 +28,11 @@ public class CustomAgentController {
     private UserAccessService userAccessService;
 
     @GetMapping
-    public List<Map<String, Object>> getCustomAgents() {
-        return customAgentService.readAgents();
+    public List<Map<String, Object>> getCustomAgents(@RequestParam String email) {
+        boolean admin = adminAuthService.isAdmin(email);
+        return customAgentService.readAgents().stream()
+                .filter(agent -> admin || email.equalsIgnoreCase(String.valueOf(agent.get("ownerEmail"))))
+                .toList();
     }
 
     @PostMapping
@@ -44,6 +47,8 @@ public class CustomAgentController {
         
         Map<String, Object> newAgent = new HashMap<>(agentData);
         // Generate a simple ID
+        newAgent.remove("email");
+        newAgent.put("ownerEmail", email.trim().toLowerCase());
         newAgent.put("id", String.valueOf(System.currentTimeMillis()));
         newAgent.put("createdAt", System.currentTimeMillis());
 
@@ -56,9 +61,15 @@ public class CustomAgentController {
     public ResponseEntity<Map<String, String>> deleteCustomAgent(@PathVariable String id, @RequestBody Map<String, String> body) {
         String email = body.getOrDefault("email", "");
 
-        if (!adminAuthService.isAdmin(email)) {
+        Map<String, Object> target = customAgentService.readAgents().stream()
+            .filter(agent -> id.equals(String.valueOf(agent.get("id"))))
+            .findFirst().orElse(null);
+        if (target == null) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("status", "NOT_FOUND", "message", "Agente não encontrado."));
+        }
+        if (!adminAuthService.isAdmin(email) && !email.equalsIgnoreCase(String.valueOf(target.get("ownerEmail")))) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                    .body(Map.of("status", "DENIED", "message", "Apenas administradores podem remover agentes instanciados."));
+                .body(Map.of("status", "DENIED", "message", "Apenas o proprietário ou um administrador pode remover este agente."));
         }
 
         List<Map<String, Object>> agents = customAgentService.readAgents();
