@@ -1588,7 +1588,35 @@ textarea {
   gap: 6px;
 }
 
-/* --- Modo DEUS: Page Editor Studio Styles --- */
+/* --- ESTÚDIO DE MODELAGEM & VENDAS: Page Editor Studio Styles --- */
+.template-selector-container {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: 12px 16px;
+  margin-bottom: 16px;
+}
+
+.template-combo-box {
+  background: var(--bg-surface);
+  color: var(--text-primary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  padding: 8px 12px;
+  font-size: 0.85rem;
+  font-weight: 500;
+  transition: var(--transition-fast);
+}
+
+.template-combo-box:focus {
+  border-color: var(--color-alex);
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+}
+
 .page-template-bar {
   display: flex;
   align-items: center;

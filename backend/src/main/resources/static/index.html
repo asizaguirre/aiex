@@ -365,31 +365,74 @@
           <div id="publicPagesList" class="public-pages-list"></div>
         </section>
 
-        <!-- Aba Editor de Páginas (Modo DEUS - Studio de Modelagem & Vendas) -->
+        <!-- Aba Editor de Páginas (ESTÚDIO DE MODELAGEM & VENDAS) -->
         <section class="tab-content glass-card page-editor-tab" id="pageEditorTab" style="display: none;">
           <div class="editor-heading">
             <div>
-              <span class="eyebrow">MODO DEUS · ESTÚDIO DINÂMICO DE PÁGINAS & VENDAS</span>
-              <h2 id="pageEditorHeading">Modelador de Página Pública</h2>
+              <span class="eyebrow">ESTÚDIO DE MODELAGEM & VENDAS</span>
+              <h2 id="pageEditorHeading">Modelador & Construtor de Páginas Públicas</h2>
             </div>
             <div style="display: flex; gap: 8px; align-items: center;">
               <button type="button" id="closePageEditorBtn" class="btn-secondary">Voltar às Páginas</button>
             </div>
           </div>
 
-          <!-- Barra de Modelos Rápidos por Segmento de Negócio -->
-          <div class="page-template-bar">
-            <span style="font-size: 0.76rem; color: var(--text-muted); font-weight: 700;">TEMPLATES DE NEGÓCIO:</span>
-            <button type="button" class="template-chip" data-template="sales">🛍️ Varejo & Produtos</button>
-            <button type="button" class="template-chip" data-template="house">🏠 THE HOUSE (Luxo)</button>
-            <button type="button" class="template-chip" data-template="gastro">🍽️ Restaurantes & Cafés</button>
-            <button type="button" class="template-chip" data-template="health">🩺 Clínicas & Saúde</button>
-            <button type="button" class="template-chip" data-template="law">⚖️ Advocacia</button>
-            <button type="button" class="template-chip" data-template="services">🚀 SaaS & Tech</button>
-            <button type="button" class="template-chip" data-template="fitness">🏋️ Fitness & Gym</button>
-            <button type="button" class="template-chip" data-template="education">🎓 Cursos & Mentorias</button>
-            <button type="button" class="template-chip" data-template="auto">🚗 Automotivo</button>
-            <button type="button" class="template-chip" data-template="report">📊 Relatórios IA</button>
+          <!-- Combo Box de Modelos de Negócio & Conhecimento dos Agentes -->
+          <div class="template-selector-container" style="margin-bottom: 16px; padding: 12px 16px; background: rgba(255, 255, 255, 0.03); border: 1px solid var(--border-color); border-radius: var(--radius-md); display: flex; flex-wrap: wrap; gap: 10px; align-items: center;">
+            <label for="templateSelect" style="margin: 0; font-size: 0.8rem; font-weight: 700; color: var(--color-alex); display: flex; align-items: center; gap: 6px;">
+              📚 BASE DE CONHECIMENTO & TEMPLATES:
+            </label>
+            <select id="templateSelect" class="template-combo-box" style="flex: 1; min-width: 260px; padding: 8px 12px; background: var(--bg-surface); color: var(--text-primary); border: 1px solid var(--border-color); border-radius: var(--radius-sm); font-size: 0.85rem;">
+              <option value="">-- Selecione um Modelo Baseado no Seu Negócio --</option>
+              <optgroup label="🍽️ Gastronomia, Restaurantes & Delivery">
+                <option value="gastro_menu">📜 Cardápio Completo com Fotos, Descrição de Pratos & Preços</option>
+                <option value="gastro_burgers">🍔 Hamburgueria Artesanal & Combos com Fotos</option>
+                <option value="gastro_pizzaria">🍕 Pizzaria Forno a Lenha & Massas Gourmet</option>
+                <option value="gastro_cafe">☕ Cafeteria Especial & Confeitaria Fina</option>
+                <option value="gastro_degustacao">🍷 Menu Degustação do Chef & Reservas</option>
+              </optgroup>
+              <optgroup label="🏠 Imóveis, Quartos & Hospedagem">
+                <option value="hotel_quarto_luxo">🛏️ Suíte Master / Quarto com Fotos, Dimensões e Comodidades</option>
+                <option value="pousada_chale">🏡 Chalé & Pousada com Vista e Café da Manhã</option>
+                <option value="house_mansao">🏰 THE HOUSE — Mansão Contemporânea de Alto Luxo</option>
+                <option value="imovel_apartamento">🏢 Apartamento Alto Padrão — Detalhamento de Cômodos e Vagas</option>
+              </optgroup>
+              <optgroup label="🛍️ Varejo, E-commerce & Produtos">
+                <option value="sales_catalogo">🛍️ Catálogo de Produtos com Galeria de Fotos e Preços</option>
+                <option value="sales_eletronicos">📱 Eletrônicos, Gadgets & Smartphones</option>
+                <option value="sales_moda">👗 Moda, Vestuário & Coleção Exclusiva</option>
+              </optgroup>
+              <optgroup label="🩺 Saúde, Clínicas & Estética">
+                <option value="health_clinica">🩺 Clínica Médica Integrada & Especialidades</option>
+                <option value="health_odonto">🦷 Clínica Odontológica & Procedimentos Estéticos</option>
+                <option value="health_estetica">💆‍♀️ Centro de Estética Avançada & Rejuvenescimento</option>
+              </optgroup>
+              <optgroup label="⚖️ Jurídico & Advocacia">
+                <option value="law_empresarial">⚖️ Advocacia Empresarial, M&A e Tributário</option>
+                <option value="law_trabalhista">🏛️ Assessoria Jurídica Trabalhista & Previdenciária</option>
+              </optgroup>
+              <optgroup label="🚀 Tecnologia, SaaS & Serviços">
+                <option value="saas_plataforma">🚀 Plataforma SaaS de IA & Automação Inteligente</option>
+                <option value="saas_consultoria">💼 Consultoria de Transformação Digital & IA</option>
+              </optgroup>
+              <optgroup label="🏋️ Fitness, Academias & Treinamento">
+                <option value="fitness_academia">🏋️ Centro de Treinamento, Musculação & Planos</option>
+                <option value="fitness_personal">🏃‍♂️ Personal Trainer & Consultoria Online</option>
+              </optgroup>
+              <optgroup label="🎓 Educação, Cursos & Mentorias">
+                <option value="edu_mentoria">🎓 Mentoria Executiva de Alta Performance</option>
+                <option value="edu_curso_online">💻 Curso Online com Módulos, Certificado & Garantia</option>
+              </optgroup>
+              <optgroup label="🚗 Automotivo & Concessionárias">
+                <option value="auto_veiculos">🚗 Catálogo de Veículos Novos, Seminovos & Blindados</option>
+                <option value="auto_detailing">✨ Estética Automotiva, Vitrificação & PPF</option>
+              </optgroup>
+              <optgroup label="📊 Relatórios & Auditorias de IA">
+                <option value="report_auditoria">📊 Relatório Executivo de Auditoria & Performance do Agente</option>
+                <option value="report_entrega">📑 Entrega Formal de Projeto com Agentes de IA</option>
+              </optgroup>
+            </select>
+            <button type="button" id="btnApplyTemplateSelect" class="btn-primary" style="padding: 8px 16px; font-size: 0.85rem; white-space: nowrap;">⚡ Aplicar Template</button>
           </div>
 
           <div class="page-editor-layout">

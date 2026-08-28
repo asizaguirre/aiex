@@ -998,7 +998,7 @@ async function deleteCustomAgent(id) {
 
 // ===================================================================
 // ===================================================================
-//  PUBLIC PAGES CMS & MODO DEUS STUDIO
+//  PUBLIC PAGES CMS & ESTÚDIO DE MODELAGEM & VENDAS
 // ===================================================================
 const publicPageForm = document.getElementById('publicPageForm');
 const pageSlug = document.getElementById('pageSlug');
@@ -1026,6 +1026,8 @@ const btnPreviewDesktop = document.getElementById('btnPreviewDesktop');
 const btnPreviewMobile = document.getElementById('btnPreviewMobile');
 const btnCopyPublicUrl = document.getElementById('btnCopyPublicUrl');
 const btnOpenPublicTab = document.getElementById('btnOpenPublicTab');
+const templateSelect = document.getElementById('templateSelect');
+const btnApplyTemplateSelect = document.getElementById('btnApplyTemplateSelect');
 
 // Media & Toolbar Elements
 const mediaUploadInput = document.getElementById('mediaUploadInput');
@@ -1064,7 +1066,7 @@ let editingPageSlug = null;
 
 // Markdown parser helper for rich live preview
 function parseMarkdownToHtml(md) {
-  if (!md) return '<p style="color: var(--text-muted); font-style: italic;">Digite o conteúdo da página ou peça aos agentes para realizar um estudo de mercado...</p>';
+  if (!md) return '<p style="color: var(--text-muted); font-style: italic;">Digite o conteúdo da página ou selecione um modelo na combo box acima para começar...</p>';
   let html = escapeHtml(md);
 
   // Images: ![alt](url)
@@ -1121,7 +1123,7 @@ function parseMarkdownToHtml(md) {
 function updateStudioPreview() {
   if (!editorPreview) return;
   const slug = (editorPageSlug && editorPageSlug.value.trim()) || 'thehouse';
-  const title = (editorPageTitle && editorPageTitle.value.trim()) || 'THE HOUSE';
+  const title = (editorPageTitle && editorPageTitle.value.trim()) || 'ESTÚDIO DE MODELAGEM & VENDAS';
   const content = (editorPageContent && editorPageContent.value) || '';
 
   const fullUrl = new URL(`/public/${encodeURIComponent(slug)}`, window.location.origin).href;
@@ -1236,7 +1238,7 @@ async function fetchMediaGallery() {
           const url = thumb.dataset.url;
           const type = thumb.dataset.type;
           if (type === 'video') {
-            insertTextAtCursor(editorPageContent, `\n\n[video:Apresentação do Produto](${url})\n\n`);
+            insertTextAtCursor(editorPageContent, `\n\n[video:Apresentação em Vídeo](${url})\n\n`);
           } else {
             insertTextAtCursor(editorPageContent, `\n\n![Foto em Destaque](${url})\n\n`);
           }
@@ -1322,43 +1324,184 @@ if (btnAddButton) {
   });
 }
 
-// ─── 10 TEMPLATES PRÉ-CONSTRUÍDOS POR SEGMENTO DE NEGÓCIO ─────────────
+// ─── BASE DE CONHECIMENTO & TEMPLATES POR NICHO DE NEGÓCIO ───────────
 const PAGE_TEMPLATES = {
-  sales: {
-    slug: 'catalogo-produtos',
-    title: '🛍️ Coleção Exclusiva & Produtos em Destaque',
-    content: `# Coleção Exclusiva — Alta Performance & Estilo
+  // ─── 🍽️ GASTRONOMIA & RESTAURANTES
+  gastro_menu: {
+    slug: 'cardapio-bistro-gourmet',
+    title: '🍽️ Cardápio Oficial — Bistrô & Gastronomia Contemporânea',
+    content: `# Bistrô & Cozinha Contemporânea — Menu Completo
 
-Descubra nossa linha selecionada de produtos com acabamento de alto padrão e tecnologia de ponta.
+Uma experiência gastronômica artesanal com ingredientes frescos, selecionados e autênticos.
 
-> **Frete Grátis** para todo o Brasil em compras acima de R$ 199 com envio imediato e rastreamento em tempo real.
-
-## ✨ Destaques da Coleção
-- **Qualidade Superior:** Materiais nobres com garantia estendida de 12 meses.
-- **Design Contemporâneo:** Desenvolvido por designers premiados internacionalmente.
-- **Entrega Segura:** Embalagem premium inviolável e suporte pós-venda dedicado.
+> 🛵 **Delivery Exclusivo & Salão:** Terça a Domingo das 18h às 23h30 | Peça online ou reserve sua mesa.
 
 ---
 
-## 🏷️ Ofertas em Destaque
+## 🥗 Entradas & Petiscos Especiais
 
-### Combo Especial Pro — R$ 249,00
-- 1x Item Principal Edição Limitada
-- 1x Acessório Exclusivo
-- Acesso à Comunidade VIP de Clientes
+### 1. Bruschetta di Parma al Tartufo — R$ 38,00
+Pão sourdough artesanal tostado, presunto cru di Parma, queijo stracciatella, azeite trufado e folhas de manjericão fresco.
 
-[button:COMPRAR NO PIX OU CARTÃO EM ATÉ 12X](#comprar)
+### 2. Tartar de Salmão com Maracujá & Chips de Tapioca — R$ 46,00
+Cubos de salmão fresco temperados com emulsão cítrica de maracujá, cebolinha fresca e crocante artesanal de tapioca.
 
 ---
 
-### 💬 Atendimento Comercial no WhatsApp
-Tire suas dúvidas diretamente com nossos consultores de vendas:
-[whatsapp:5511999999999?text=Ol%C3%A1%2C%20quero%20conhecer%20os%20produtos%20em%20destaque](Falar no WhatsApp com Atendente)`
+## 🥩 Pratos Principais
+
+### 3. Risoto de Cogumelos Selvagens com Medalhão de Mignon — R$ 78,00
+Arroz carnaroli com mix de shimeji, shitake e cogumelo paris ao perfume de vinho branco, finalizado com medalhão grelhado e redução de balsâmico.
+
+### 4. Gnocchi Artesanal ao Molho Ragu de Cordeiro — R$ 68,00
+Massa fresca de batata asterix recheada com queijo da Serra da Canastra e servida com ragu de cordeiro cozido lentamente por 8 horas.
+
+---
+
+## 🍰 Sobremesas Irresistíveis
+
+### 5. Esfera de Chocolate Belga com Sorvete e Calda Quente — R$ 34,00
+Esfera de chocolate 70% recheada com sorvete artesanal de baunilha Bourbon e regada na mesa com ganache quente de frutas vermelhas.
+
+---
+
+### 📲 Peça pelo WhatsApp ou Faça sua Reserva
+[whatsapp:5511999999999?text=Ol%C3%A1%2C%20quero%20fazer%20um%20pedido%20do%20card%C3%A1pio](FAZER PEDIDO NO WHATSAPP)`
   },
 
-  house: {
+  gastro_burgers: {
+    slug: 'burger-house-artesanal',
+    title: '🍔 Smash & Craft Burgers — O Melhor Burger da Cidade',
+    content: `# Craft Burger House — Sabor & Crocância Incomparáveis
+
+Burgers artesanais com blend especial de carnes frescas moídas diariamente e pão brioche amanteigado selado.
+
+> ⚡ **Promoção do Dia:** Combo Burger + Batata Rústica + Bebida por apenas **R$ 44,90**!
+
+---
+
+## 🍔 Nossos Burgers Mais Pedidos
+
+### 👑 The Truffle Master — R$ 39,90
+Duplo smash de 100g, queijo cheddar inglês derretido, bacon crocante em tiras e maionese trufada no pão brioche tostado.
+
+### 🧀 Triple Cheese Bacon — R$ 42,90
+Blend de 180g na brasa, fondue de queijo gouda, queijo prato, cebola caramelizada e geleia de bacon defumado.
+
+---
+
+### 🛵 Peça pelo Delivery Rápido
+[whatsapp:5511999999999?text=Ol%C3%A1%2C%20quero%20pedir%20um%20Combo%20Burger](PEDIR PELO WHATSAPP)`
+  },
+
+  gastro_pizzaria: {
+    slug: 'pizzaria-napoletana',
+    title: '🍕 Pizzaria Napoletana — Forno a Lenha & Fermentação Natural',
+    content: `# Forneria & Pizzaria Napoletana
+
+Massa de fermentação lenta (48h) com farinha italiana 00, molho de tomate San Marzano DOP e queijo fior di latte.
+
+---
+
+## 🍕 Sabores Especiais
+
+### Margherita Speciale — R$ 59,00
+Molho San Marzano, fior di latte fresco, manjericão gigante e fio de azeite extravirgem.
+
+### Burrata & Parma — R$ 74,00
+Base fior di latte, burrata artesanal cremosa no centro, fatias de presunto Parma e pesto de pistache.
+
+[whatsapp:5511999999999?text=Ol%C3%A1%2C%20gostaria%20de%20pedir%20uma%20Pizza](FAZER PEDIDO PELO WHATSAPP)`
+  },
+
+  gastro_cafe: {
+    slug: 'cafe-especial-doceria',
+    title: '☕ Cafeteria Especial, Brunches & Confeitaria Fina',
+    content: `# Café & Confeitaria Artesanal
+
+Grãos especiais 100% arábica com torra fresca, métodos filtrados e confeitaria autoral.
+
+## 🥐 Destaques do Menu
+- **Croissant de Amêndoas Francês:** Folhado leve e crocante recheado com creme frangipane — **R$ 22,00**
+- **Café Coado V60 / Aeropress:** Grãos florais da Serra da Mantiqueira — **R$ 14,00**
+- **Cheesecake New York:** Com calda rústica de frutas vermelhas — **R$ 26,00**
+
+[whatsapp:5511999999999?text=Ol%C3%A1%2C%20quero%20encomendar%20doces%20ou%20fazer%20uma%20visita](Falar no WhatsApp com Atendente)`
+  },
+
+  gastro_degustacao: {
+    slug: 'menu-degustacao',
+    title: '🍷 Menu Degustação do Chef — 7 Passos Harmonizados',
+    content: `# Experiência Gastronômica em 7 Etapas
+
+Uma celebração dos sentidos criada pelo Chef Executivo com harmonização exclusiva de vinhos selecionados.
+
+> 🍾 **Apenas 20 lugares por noite** com atendimento privativo e apresentação técnica de cada prato.
+
+[whatsapp:5511999999999?text=Ol%C3%A1%2C%20quero%20reservar%20a%20experi%C3%AAncia%20degusta%C3%A7%C3%A3o](RESERVAR EXPERIÊNCIA DEGUSTAÇÃO)`
+  },
+
+  // ─── 🏠 IMÓVEIS, QUARTOS & HOSPEDAGEM
+  hotel_quarto_luxo: {
+    slug: 'suite-presidencial-luxo',
+    title: '🛏️ Suíte Presidencial Master — Conforto & Requinte 5 Estrelas',
+    content: `# Suíte Master Presidencial com Vista Panorâmica
+
+Hospede-se com o máximo de privacidade, tecnologia e elegância no ponto mais privilegiado da cidade.
+
+> 🌟 **Destaques:** 85m² privativos | Cama King Size com enxoval 600 fios | Banheira de hidromassagem dupla | Varanda com vista para o pôr do sol.
+
+---
+
+## 🛏️ Detalhamento do Quarto & Cômodos
+
+### 1. Espaço de Descanso Principal
+- Cama King Size articulada com travesseiros de pluma de ganso.
+- Smart TV 65" 4K com canais a cabo e serviços de streaming liberados.
+- Ar-condicionado Split Inverter silencioso com controle térmico por IA.
+
+### 2. Banheiro Spa Privativo
+- Banheira de hidromassagem aquecida com cromoterapia para 2 pessoas.
+- Ducha dupla de alta pressão e acabamentos em mármore italiano.
+- Amenities de banho L'Occitane e roupões aveludados inclusos.
+
+### 3. Living Integrado & Mini Bar Gourmet
+- Sofá contemporâneo e mesa de trabalho com tomadas universais e Wi-Fi 6 de 500Mbps.
+- Frigobar retro abastecido e cafeteira Nespresso com cápsulas de cortesia.
+
+---
+
+## 💰 Tarifário & Diárias
+
+### Diária Padrão — R$ 580,00 / noite (com Café da Manhã Completo)
+- Check-in: 14h00 | Check-out: 12h00
+- Estacionamento com manobrista cortesia
+- Acesso livre ao SPA, academia e piscina aquecida do complexo
+
+---
+
+### 📅 Garanta sua Reserva com Condições Exclusivas
+[whatsapp:5511999999999?text=Ol%C3%A1%2C%20gostaria%20de%20reservar%20a%20Su%C3%ADte%20Master](RESERVAR SUÍTE PELO WHATSAPP)`
+  },
+
+  pousada_chale: {
+    slug: 'chale-serra-vista',
+    title: '🏡 Chalé Boutique na Serra — Charme, Lareira & Natureza',
+    content: `# Chalé Boutique com Vista Panorâmica da Serra
+
+O refúgio perfeito para relaxar a dois em meio à natureza com lareira ecológica e hidromassagem externa.
+
+## ✨ O que o Chalé Oferece
+- **Lareira na Sala e no Quarto** para noites aconchegantes.
+- **Deck de Madeira com Ofurô Aquecido** e vista para as montanhas.
+- **Cesta de Café da Manhã Artesanal** entregue quentinha na porta todos os dias.
+
+[whatsapp:5511999999999?text=Ol%C3%A1%2C%20quero%20consultar%20disponibilidade%20do%20Chal%C3%A9](CONSULTAR DATAS DISPONÍVEIS)`
+  },
+
+  house_mansao: {
     slug: 'thehouse',
-    title: 'THE HOUSE — Mansão Contemporânea de Alto Luxo',
+    title: '🏰 THE HOUSE — Mansão Contemporânea de Alto Luxo',
     content: `# THE HOUSE — O Ápice da Sofisticação & Automação
 
 Uma experiência residencial incomparável no endereço mais exclusivo da cidade, com arquitetura contemporânea e automação total com Inteligência Artificial.
@@ -1379,145 +1522,204 @@ Os atendimentos são realizados com exclusividade e discrição para clientes ca
 [whatsapp:5511999999999?text=Ol%C3%A1%2C%20gostaria%20de%20agendar%20uma%20visita%20ao%20THE%20HOUSE](AGENDAR VISITA COM CORRETOR EXCLUSIVO)`
   },
 
-  gastro: {
-    slug: 'menu-experiencia',
-    title: '🍽️ Menu Degustação & Experiência Gastronômica',
-    content: `# Bistrô & Cozinha Autoral — Sabor & Tradição
+  imovel_apartamento: {
+    slug: 'apartamento-luxo-panoramico',
+    title: '🏢 Apartamento de Alto Padrão — 280m² com 4 Suítes',
+    content: `# Apartamento Exclusivo em Andar Alto com Vista 360°
 
-Uma jornada sensorial inspirada na culinária contemporânea com ingredientes orgânicos e sustentáveis.
+Planta inteligente, acabamentos de altíssimo padrão e lazer completo estilo resort.
 
-> **Horário de Funcionamento:** Terça a Domingo das 19h às 23h30 | **Reservas Antecipadas**
+## 📐 Distribuição dos Cômodos
+- **Hall Social Privativo** com biometria facial.
+- **Varanda Gourmet Integrada** com churrasqueira a carvão e fechamento em vidro.
+- **Cozinha Gourmet com Ilha Central** e despensa integrada.
+- **4 Vagas de Garagem Determinadas** com ponto de recarga elétrica para veículos.
 
-## 🍷 Experiência do Chef
-- **Entrada:** Tartar de salmão com emulsão de maracujá e crocante de tapioca.
-- **Principal:** Risoto de cogumelos selvagens com medalhão de filé ao molho trufado.
-- **Sobremesa:** Esfera de chocolate belga com calda quente de frutas vermelhas.
-
----
-
-## 📲 Reservas de Mesas & Eventos Privados
-Garanta sua mesa ou reserve o salão exclusivo para comemorações especiais:
-
-[whatsapp:5511999999999?text=Ol%C3%A1%2C%20gostaria%20de%20fazer%20uma%20reserva%20para%20hoje](Fazer Reserva pelo WhatsApp)
-[button:VER CARDÁPIO COMPLETO EM PDF](#cardapio)`
+[whatsapp:5511999999999?text=Ol%C3%A1%2C%20quero%20receber%20a%20planta%20e%20valores%20do%20Apartamento](SOLICITAR APRESENTAÇÃO COMPLETA)`
   },
 
-  health: {
-    slug: 'clinica-especializada',
-    title: '🩺 Clínica de Saúde Integrada & Estética Avançada',
-    content: `# Cuidando da Sua Saúde & Bem-Estar com Excelência
+  // ─── 🛍️ VAREJO & PRODUTOS
+  sales_catalogo: {
+    slug: 'catalogo-produtos-premium',
+    title: '🛍️ Catálogo Oficial de Produtos & Lançamentos',
+    content: `# Coleção Exclusiva — Qualidade & Alta Performance
 
-Tratamentos personalizados com corpo clínico multidisciplinar e tecnologias médicas de última geração.
+Descubra nossa linha completa de produtos com garantia oficial de 12 meses e entrega rápida.
 
-## 🌟 Nossas Especialidades
-- **Medicina Preventiva & Longevidade:** Check-ups completos e acompanhamento contínuo.
-- **Dermatologia & Estética Avançada:** Rejuvenescimento, laser e protocolos faciais.
-- **Nutrição Clínica & Esportiva:** Planos alimentares com bioimpedância detalhada.
+> **Frete Grátis** para todo o Brasil em pedidos selecionados.
 
----
+## 📦 Produtos em Destaque
+- **Item 1:** Acabamento premium e durabilidade comprovada — **R$ 149,00**
+- **Item 2:** Edição limitada com kit de acessórios — **R$ 289,00**
+- **Item 3:** Pacote completo para máxima conveniência — **R$ 399,00**
 
-## 📅 Agende sua Avaliação
-Conte com um ambiente acolhedor, estacionamento privativo e pontualidade no atendimento:
-
-[whatsapp:5511999999999?text=Ol%C3%A1%2C%20quero%20agendar%20uma%20consulta%20m%C3%A9dica](Agendar Consulta no WhatsApp)`
+[whatsapp:5511999999999?text=Ol%C3%A1%2C%20quero%20comprar%20um%20produto%20do%20cat%C3%A1logo](Comprar pelo WhatsApp)
+[button:VER LOJA VIRTUAL COMPLETA](#loja)`
   },
 
-  law: {
-    slug: 'advocacia-estrategica',
-    title: '⚖️ Advocacia Empresarial & Assessoria Jurídica',
-    content: `# Soluções Jurídicas Estratégicas para o seu Negócio
+  sales_eletronicos: {
+    slug: 'eletronicos-alta-tecnologia',
+    title: '📱 Gadgets & Eletrônicos de Alta Performance',
+    content: `# Tecnologia de Ponta & Acessórios Premium
 
-Proteção patrimonial, compliance e assessoria em negociações complexas com ética e excelência técnica.
+Dispositivos inteligentes com garantia estendida e suporte técnico especializado.
 
-## 🏛️ Áreas de Atuação
-- **Direito Societário & M&A:** Fusões, aquisições e reestruturação corporativa.
-- **Planejamento Tributário:** Redução legal de carga tributária e recuperação de créditos.
-- **Proteção Patrimonial & Sucessória:** Blindagem jurídica de ativos familiares e empresariais.
-
----
-
-## 🤝 Agende uma Análise Preliminar
-Fale com nossos advogados especialistas para uma consulta confidencial:
-
-[whatsapp:5511999999999?text=Ol%C3%A1%2C%20gostaria%20de%20uma%20consulta%20jur%C3%ADdica](Falar com Advogado Especialista)`
+[button:COMPRAR AGORA EM ATÉ 12X SEM JUROS](#comprar)
+[whatsapp:5511999999999?text=Ol%C3%A1%2C%20quero%20saber%20sobre%20os%20eletr%C3%B4nicos](Tirar Dúvidas com Atendente)`
   },
 
-  services: {
-    slug: 'solucoes-saas-ia',
-    title: '🚀 Plataforma de IA & Automação Inteligente',
-    content: `# Escale sua Empresa com Agentes Autônomos de IA
+  sales_moda: {
+    slug: 'colecao-moda-exclusiva',
+    title: '👗 Coleção de Moda & Estilo Contemporâneo',
+    content: `# Nova Coleção — Sofisticação, Conforto & Atitude
 
-Elimine tarefas manuais, acelere seu atendimento e multiplique suas conversões em tempo recorde.
+Peças exclusivas com tecidos nobres e corte de alfaiataria moderna.
 
-## ⚡ Por que Escolher Nossa Solução?
-- **Atendimento 24/7 sem Fila:** Respostas instantâneas e humanizadas no WhatsApp e Web.
-- **Integração Rápida:** Conecte ao seu CRM, ERP e banco de dados em minutos.
-- **ROI Comprovado:** Clientes registram aumento de até 4x na produtividade de vendas.
-
----
-
-## 💳 Planos & Investimento
-
-### Plano Growth — R$ 297,00 / mês
-- Até 5 Agentes de IA simultâneos
-- Integração completa de WhatsApp
-- Relatórios semanais de performance
-
-[button:INICIAR TESTE GRATUITO DE 7 DIAS](#teste)
-[whatsapp:5511999999999?text=Ol%C3%A1%2C%20quero%20ver%20uma%20demonstra%C3%A7%C3%A3o%20da%20plataforma](Agendar Demonstração ao Vivo)`
+[button:CONFERIR LOOKBOOK & COMPRAR](#lookbook)`
   },
 
-  fitness: {
-    slug: 'treinamento-personalizado',
-    title: '🏋️ Centro de Treinamento & Alta Performance',
-    content: `# Supere seus Limites com Acompanhamento de Elite
+  // ─── 🩺 SAÚDE & ESTÉTICA
+  health_clinica: {
+    slug: 'clinica-medica-integrada',
+    title: '🩺 Clínica Médica Integrada & Longevidade Saudável',
+    content: `# Medicina Preventiva & Cuidado Humanizado
 
-Treinos individualizados, estrutura completa e suporte de nutricionistas para atingir o seu melhor resultado.
+Corpo clínico renomado, exames rápidos e protocolos individuais de saúde integrativa.
 
-## 🔥 O que Você Encontra Aqui
-- **Equipamentos de Última Geração** com biomecânica avançada.
-- **Acompanhamento Personalizado** para emagrecimento, hipertrofia e condicionamento.
-- **Bioimpedância Periódica** e ajuste quinzenal de carga e volume.
-
-[whatsapp:5511999999999?text=Ol%C3%A1%2C%20quero%20agendar%20uma%20aula%20experimental%20gratuita](AGENDAR AULA EXPERIMENTAL GRÁTIS)`
+[whatsapp:5511999999999?text=Ol%C3%A1%2C%20quero%20agendar%20uma%20consulta](AGENDAR CONSULTA MÉDICA)`
   },
 
-  education: {
-    slug: 'mentoria-alta-escala',
-    title: '🎓 Mentoria Executiva & Formação Prática',
-    content: `# Domine as Ferramentas do Futuro e Acelere sua Carreira
+  health_odonto: {
+    slug: 'odontologia-estetica-3d',
+    title: '🦷 Odontologia Digital — Lentes de Contato & Implantes',
+    content: `# Transforme seu Sorriso com Tecnologia Digital 3D
 
-Metodologia prática direto ao ponto com estudos de caso reais e mentoria direta com especialistas do mercado.
+Planejamento estético guiado por computador, sedação consciente e pontualidade.
 
-## 📚 Conteúdo Programático
-- **Módulo 1:** Fundamentos e Estruturação Estratégica.
-- **Módulo 2:** Implementação de Agentes e Automações na Prática.
-- **Módulo 3:** Escala de Negócios e Vendas de Alto Ticket.
-
-> **Vagas Limitadas:** Turmas reduzidas para garantir acompanhamento próximo de cada aluno.
-
-[button:GARANTIR MINHA VAGA COM DESCONTO](#vaga)
-[whatsapp:5511999999999?text=Ol%C3%A1%2C%20gostaria%20de%20saber%20mais%20sobre%20a%20mentoria](Tirar Dúvidas com o Time Pedagógico)`
+[whatsapp:5511999999999?text=Ol%C3%A1%2C%20quero%20agendar%20uma%20avalia%C3%A7%C3%A3o%20odontol%C3%B3gica](Agendar Avaliação Odontológica)`
   },
 
-  auto: {
-    slug: 'veiculos-premium',
-    title: '🚗 Concessionária Premium — Carros & Blindados',
-    content: `# Veículos Selecionados com Garantia & Procedência
+  health_estetica: {
+    slug: 'estetica-avancada-facial',
+    title: '💆‍♀️ Harmonização Facial & Estética Avançada',
+    content: `# Realce sua Beleza Natural com Procedimentos Seguros
 
-Os modelos mais desejados do mercado com laudo cautelar 100% aprovado e condições especiais de financiamento.
+Botox, preenchedores com ácido hialurônico, bioestimuladores de colágeno e lasers de última geração.
 
-## 🏎️ Diferenciais de Compra
-- **Garantia Total de 1 Ano** de motor e câmbio.
-- **Avaliação Justa do seu Usado** na troca com pagamento imediato.
-- **Entrega em Todo o Brasil** com transporte segurado porta a porta.
-
-[whatsapp:5511999999999?text=Ol%C3%A1%2C%20gostaria%20de%20receber%20o%20cat%C3%A1logo%20de%20ve%C3%ADculos](SOLICITAR CATÁLOGO DE VEÍCULOS)`
+[whatsapp:5511999999999?text=Ol%C3%A1%2C%20quero%20conhecer%20os%20protocolos%20est%C3%A9ticos](Agendar Avaliação Estética)`
   },
 
-  report: {
+  // ─── ⚖️ JURÍDICO
+  law_empresarial: {
+    slug: 'advocacia-empresarial',
+    title: '⚖️ Advocacia Empresarial & Proteção Patrimonial',
+    content: `# Assessoria Jurídica Estratégica para Negócios
+
+Contratos complexos, M&A, planejamento tributário e governança corporativa.
+
+[whatsapp:5511999999999?text=Ol%C3%A1%2C%20gostaria%20de%20falar%20com%20um%20advogado](Falar com Advogado Especialista)`
+  },
+
+  law_trabalhista: {
+    slug: 'assessoria-juridica-trabalhista',
+    title: '🏛️ Consultoria Trabalhista & Prevenção de Passivos',
+    content: `# Segurança Jurídica para sua Empresa e Colaboradores
+
+Auditoria de compliance, defesa contenciosa e estruturação de políticas internas.
+
+[whatsapp:5511999999999?text=Ol%C3%A1%2C%20preciso%20de%20uma%20consultoria%20trabalhista](Consultar Especialista)`
+  },
+
+  // ─── 🚀 TECNOLOGIA & SAAS
+  saas_plataforma: {
+    slug: 'plataforma-saas-ia',
+    title: '🚀 AlEx Platform — Agentes de IA Autônomos para Empresas',
+    content: `# Automatize seu Atendimento & Vendas com Inteligência Artificial
+
+Agentes conectados ao WhatsApp, CRM e banco de dados que atendem clientes em segundos.
+
+[button:COMEÇAR TESTE GRATUITO DE 7 DIAS](#teste)
+[whatsapp:5511999999999?text=Ol%C3%A1%2C%20quero%20uma%20demonstra%C3%A7%C3%A3o%20da%20plataforma](Agendar Demonstração ao Vivo)`
+  },
+
+  saas_consultoria: {
+    slug: 'consultoria-transformacao-ia',
+    title: '💼 Consultoria Estratégica em Inteligência Artificial',
+    content: `# Implante IA no seu Negócio com Segurança & Alto ROI
+
+Mapeamento de processos, seleção de ferramentas e treinamento de equipes executivas.
+
+[whatsapp:5511999999999?text=Ol%C3%A1%2C%20quero%20uma%20proposta%20de%20consultoria](Solicitar Diagnóstico Preliminar)`
+  },
+
+  // ─── 🏋️ FITNESS
+  fitness_academia: {
+    slug: 'academia-treinamento-elite',
+    title: '🏋️ Academia & Centro de Treinamento de Alta Performance',
+    content: `# Supere seus Limites com Estrutura Completa & Coaches Certificados
+
+Musculação, cardio de última geração, aulas coletivas e acompanhamento nutricional.
+
+[whatsapp:5511999999999?text=Ol%C3%A1%2C%20quero%20agendar%20uma%20aula%20experimental](Agendar Aula Experimental Grátis)`
+  },
+
+  fitness_personal: {
+    slug: 'personal-trainer-consultoria',
+    title: '🏃‍♂️ Consultoria Fitness & Treinamento Personalizado',
+    content: `# Treinos Sob Medida para Emagrecimento & Hipertrofia
+
+Acompanhamento via aplicativo com vídeos explicativos, suporte diário e avaliação postural.
+
+[whatsapp:5511999999999?text=Ol%C3%A1%2C%20quero%20iniciar%20minha%20consultoria%20fitness](Começar Treinamento Personalizado)`
+  },
+
+  // ─── 🎓 EDUCAÇÃO
+  edu_mentoria: {
+    slug: 'mentoria-executiva-escala',
+    title: '🎓 Mentoria Executiva — Estratégia, Vendas & IA',
+    content: `# Acelere sua Carreira e Escale seu Negócio
+
+Encontros quinzenais ao vivo, networking com líderes do mercado e acesso a ferramentas exclusivas.
+
+[button:APLICAR PARA A PRÓXIMA TURMA](#aplicar)
+[whatsapp:5511999999999?text=Ol%C3%A1%2C%20quero%20saber%20sobre%20o%20processo%20seletivo%20da%20mentoria](Tirar Dúvidas sobre a Mentoria)`
+  },
+
+  edu_curso_online: {
+    slug: 'curso-pratico-ia',
+    title: '💻 Formação Prática em Agentes de IA & Automações',
+    content: `# Domine as Ferramentas do Futuro Passo a Passo
+
+Aulas direto ao ponto, suporte na comunidade e certificado oficial reconhecido.
+
+[button:GARANTIR ACESSO COM VALOR PROMOCIONAL](#comprar)`
+  },
+
+  // ─── 🚗 AUTOMOTIVO
+  auto_veiculos: {
+    slug: 'veiculos-premium-seminovos',
+    title: '🚗 Concessionária Premium — Carros & Blindados Selecionados',
+    content: `# Veículos Selecionados com Laudo Cautelar 100% Aprovado
+
+Garantia de 1 ano, procedência comprovada e melhores taxas de financiamento.
+
+[whatsapp:5511999999999?text=Ol%C3%A1%2C%20gostaria%20de%20receber%20o%20estoque%20atualizado](SOLICITAR ESTOQUE DE VEÍCULOS)`
+  },
+
+  auto_detailing: {
+    slug: 'estetica-automotiva-vitrificacao',
+    title: '✨ Estética Automotiva, Vitrificação & PPF',
+    content: `# Proteção Cerâmica, Polimento Técnico e Detalhamento
+
+Proteja a pintura do seu veículo com os melhores produtos do mercado mundial.
+
+[whatsapp:5511999999999?text=Ol%C3%A1%2C%20quero%20um%20or%C3%A7amento%20de%20est%C3%A9tica%20automotiva](Solicitar Orçamento)`
+  },
+
+  // ─── 📊 RELATÓRIOS
+  report_auditoria: {
     slug: 'relatorio-executivo-ia',
-    title: '📊 Relatório de Entrega & Auditoria de IA',
+    title: '📊 Relatório Executivo de Auditoria & Performance do Agente',
     content: `# Relatório Executivo de Resultados & Entregáveis
 
 Documento oficial gerado pelos agentes autônomos da AlEx Platform v2.
@@ -1527,12 +1729,78 @@ Documento oficial gerado pelos agentes autônomos da AlEx Platform v2.
 - **Tempo Médio de Atendimento:** 1.4s
 - **Índice de Resolução no 1º Contato:** 94.8%
 
-## 📋 Conclusões & Recomendações
-Todos os testes de carga e segurança foram validados com 100% de conformidade técnica.
-
 [button:BAIXAR VERSÃO COMPLETA EM PDF](#pdf)`
+  },
+
+  report_entrega: {
+    slug: 'entrega-projeto-agentes',
+    title: '📑 Entrega Formal de Projeto & Validação Técnica',
+    content: `# Validação & Homologação de Sistema de Agentes
+
+Relatório completo de deploy, testes de estresse e conformidade de segurança.
+
+[button:ACESSAR PAINEL DE CONTROLE](#painel)`
   }
 };
+
+// Aliases para compatibilidade rápida
+PAGE_TEMPLATES.sales = PAGE_TEMPLATES.sales_catalogo;
+PAGE_TEMPLATES.house = PAGE_TEMPLATES.house_mansao;
+PAGE_TEMPLATES.gastro = PAGE_TEMPLATES.gastro_menu;
+PAGE_TEMPLATES.health = PAGE_TEMPLATES.health_clinica;
+PAGE_TEMPLATES.law = PAGE_TEMPLATES.law_empresarial;
+PAGE_TEMPLATES.services = PAGE_TEMPLATES.saas_plataforma;
+PAGE_TEMPLATES.fitness = PAGE_TEMPLATES.fitness_academia;
+PAGE_TEMPLATES.education = PAGE_TEMPLATES.edu_mentoria;
+PAGE_TEMPLATES.auto = PAGE_TEMPLATES.auto_veiculos;
+PAGE_TEMPLATES.report = PAGE_TEMPLATES.report_auditoria;
+
+// Helper to apply template by key
+function applyTemplateByKey(templateKey) {
+  if (!templateKey) return;
+  const tpl = PAGE_TEMPLATES[templateKey];
+  if (tpl) {
+    if (pageEditorTab && pageEditorTab.style.display === 'none') {
+      openPageEditor(tpl.slug);
+    }
+
+    if (editorPageSlug && (!editorPageSlug.value.trim() || confirm('Substituir campos pelo modelo selecionado?'))) {
+      editorPageSlug.value = tpl.slug;
+      editorPageTitle.value = tpl.title;
+      editorPageContent.value = tpl.content;
+      updateStudioPreview();
+      showToast('✨ Template de negócio aplicado com sucesso!');
+      setEditorMode('form');
+    }
+  }
+}
+
+// Apply Template from Combo Box
+if (templateSelect) {
+  templateSelect.addEventListener('change', () => {
+    const val = templateSelect.value;
+    if (val) applyTemplateByKey(val);
+  });
+}
+
+if (btnApplyTemplateSelect) {
+  btnApplyTemplateSelect.addEventListener('click', () => {
+    const val = templateSelect ? templateSelect.value : '';
+    if (val) {
+      applyTemplateByKey(val);
+    } else {
+      showToast('Selecione um template na lista acima!');
+    }
+  });
+}
+
+// Apply Template Chips (se existirem)
+document.querySelectorAll('.template-chip').forEach(chip => {
+  chip.addEventListener('click', () => {
+    const templateKey = chip.getAttribute('data-template');
+    applyTemplateByKey(templateKey);
+  });
+});
 
 // Preview button in Studio
 if (previewPageBtn) {
