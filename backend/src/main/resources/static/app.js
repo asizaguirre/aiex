@@ -1,20 +1,304 @@
+// ===================================================================
+//  AlEx AI Platform v2 - Core Application & UI Engine
+//  God-Tier Aesthetics & Intelligent Responsive Controls
+// ===================================================================
+
 // Dynamic API resolver for static/local setups
 function getApiUrl(path) {
-  // If the host is local development
   if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
     return path;
   }
-  // Allow the user to point the frontend to a custom backend URL when published separately (e.g., GitHub Pages)
   const customUrl = localStorage.getItem('ALEX_BACKEND_URL');
   if (customUrl) {
-    // Ensure no double slash and trailing slash correction
     const base = customUrl.endsWith('/') ? customUrl.slice(0, -1) : customUrl;
     return `${base}${path}`;
   }
   return path;
 }
 
-// 6. Configuração do Modal do Agente Customizado (Web Speech API)
+// Utility: Debounce helper for performance optimization
+function debounce(func, wait) {
+  let timeout;
+  return function(...args) {
+    const context = this;
+    clearTimeout(timeout);
+    timeout = setTimeout(() => func.apply(context, args), wait);
+  };
+}
+
+// Utility: Escape HTML
+function escapeHtml(value) {
+  if (!value) return '';
+  return String(value)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+}
+
+// ===================================================================
+//  GLOBAL TOAST SYSTEM
+// ===================================================================
+let toastTimer = null;
+window.showToast = function(message) {
+  const toast = document.getElementById('toast');
+  if (!toast) return;
+  
+  if (toastTimer) clearTimeout(toastTimer);
+  
+  toast.innerHTML = `<span>✨</span> <div>${escapeHtml(message)}</div>`;
+  toast.classList.add('show');
+  
+  toastTimer = setTimeout(() => {
+    toast.classList.remove('show');
+  }, 4000);
+};
+
+// ===================================================================
+//  CONTEXTUAL FLOATING HELP POPOVER (Above Target & Focus-Out Dismiss)
+// ===================================================================
+const globalHelpPopover = document.getElementById('globalHelpPopover');
+const globalHelpTitle = document.getElementById('globalHelpTitle');
+const globalHelpContent = document.getElementById('globalHelpContent');
+let currentActiveHelpTip = null;
+
+function showHelpPopover(helpTip) {
+  if (!globalHelpPopover || !helpTip) return;
+
+  // Toggle if clicking the same open tip
+  if (currentActiveHelpTip === helpTip && globalHelpPopover.classList.contains('show')) {
+    hideHelpPopover();
+    return;
+  }
+
+  // Remove active class from previous
+  if (currentActiveHelpTip) {
+    currentActiveHelpTip.classList.remove('active');
+  }
+
+  currentActiveHelpTip = helpTip;
+  helpTip.classList.add('active');
+
+  const title = helpTip.getAttribute('data-help-title') || 'Ajuda Contextual';
+  const content = helpTip.getAttribute('data-help-content') || helpTip.querySelector('.tooltip-text')?.innerHTML || 'Informação sobre este recurso.';
+
+  globalHelpTitle.textContent = title;
+  globalHelpContent.innerHTML = content;
+
+  // Temporarily display to measure dimensions
+  globalHelpPopover.style.visibility = 'hidden';
+  globalHelpPopover.style.display = 'block';
+  globalHelpPopover.classList.remove('positioned-below');
+
+  const rect = helpTip.getBoundingClientRect();
+  const popoverRect = globalHelpPopover.getBoundingClientRect();
+  const popoverWidth = popoverRect.width || 300;
+  const popoverHeight = popoverRect.height || 120;
+
+  // Horizontal calculation: Center over the target, keeping inside viewport
+  let left = rect.left + (rect.width / 2) - (popoverWidth / 2);
+  if (left < 14) left = 14;
+  if (left + popoverWidth > window.innerWidth - 14) {
+    left = window.innerWidth - popoverWidth - 14;
+  }
+
+  // Calculate Arrow position relative to popover
+  const arrowX = rect.left + (rect.width / 2) - left;
+  globalHelpPopover.style.setProperty('--arrow-left', `${arrowX}px`);
+
+  // Vertical calculation: Try ABOVE first
+  let top = rect.top - popoverHeight - 12;
+  let positionedBelow = false;
+
+  // If too close to viewport top, place BELOW
+  if (top < 10) {
+    top = rect.bottom + 12;
+    positionedBelow = true;
+  }
+
+  if (positionedBelow) {
+    globalHelpPopover.classList.add('positioned-below');
+  }
+
+  globalHelpPopover.style.left = `${Math.round(left)}px`;
+  globalHelpPopover.style.top = `${Math.round(top)}px`;
+
+  // Animate in
+  globalHelpPopover.style.visibility = 'visible';
+  globalHelpPopover.classList.add('show');
+  globalHelpPopover.setAttribute('aria-hidden', 'false');
+}
+
+function hideHelpPopover() {
+  if (!globalHelpPopover) return;
+  globalHelpPopover.classList.remove('show');
+  globalHelpPopover.setAttribute('aria-hidden', 'true');
+  if (currentActiveHelpTip) {
+    currentActiveHelpTip.classList.remove('active');
+    currentActiveHelpTip = null;
+  }
+}
+
+// Bind events to all help triggers
+function initHelpTips() {
+  document.querySelectorAll('.help-tip').forEach(tip => {
+    tip.setAttribute('tabindex', '0');
+    tip.setAttribute('role', 'button');
+
+    tip.addEventListener('click', (e) => {
+      e.stopPropagation();
+      e.preventDefault();
+      showHelpPopover(tip);
+    });
+
+    tip.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        e.stopPropagation();
+        showHelpPopover(tip);
+      } else if (e.key === 'Escape') {
+        hideHelpPopover();
+      }
+    });
+
+    tip.addEventListener('blur', () => {
+      // Small timeout to allow clicking inside popover if needed
+      setTimeout(() => {
+        if (!globalHelpPopover.matches(':hover')) {
+          hideHelpPopover();
+        }
+      }, 150);
+    });
+  });
+}
+
+// Global click & key listeners to close popover on focus loss or click outside
+document.addEventListener('click', (e) => {
+  if (globalHelpPopover && !globalHelpPopover.contains(e.target) && !e.target.closest('.help-tip')) {
+    hideHelpPopover();
+  }
+});
+
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') {
+    hideHelpPopover();
+  }
+});
+
+window.addEventListener('resize', debounce(hideHelpPopover, 100));
+window.addEventListener('scroll', debounce(hideHelpPopover, 100), true);
+
+// ===================================================================
+//  LAYOUT COLLAPSIBLE PANELS (Sidebar & Pipeline Monitor)
+// ===================================================================
+const dashboardGrid = document.getElementById('authenticatedWorkspace');
+const sidebarPanel = document.getElementById('sidebarPanel');
+const pipelinePanel = document.getElementById('pipelinePanel');
+const toggleSidebarBtn = document.getElementById('toggleSidebarBtn');
+const togglePipelineBtn = document.getElementById('togglePipelineBtn');
+const togglePipelineHeaderBtn = document.getElementById('togglePipelineHeaderBtn');
+const reopenPipelineBtn = document.getElementById('reopenPipelineBtn');
+
+if (toggleSidebarBtn && sidebarPanel && dashboardGrid) {
+  toggleSidebarBtn.addEventListener('click', () => {
+    const isCollapsed = sidebarPanel.classList.toggle('is-collapsed');
+    dashboardGrid.classList.toggle('sidebar-collapsed', isCollapsed);
+    toggleSidebarBtn.classList.toggle('active', !isCollapsed);
+    showToast(isCollapsed ? 'Barra lateral recolhida' : 'Barra lateral expandida');
+  });
+}
+
+function setPipelineCollapsed(collapsed) {
+  if (!pipelinePanel || !dashboardGrid) return;
+  pipelinePanel.classList.toggle('is-collapsed', collapsed);
+  dashboardGrid.classList.toggle('right-collapsed', collapsed);
+  if (reopenPipelineBtn) {
+    reopenPipelineBtn.style.display = collapsed && adminEmail ? 'inline-flex' : 'none';
+  }
+}
+
+if (togglePipelineBtn) {
+  togglePipelineBtn.addEventListener('click', () => {
+    setPipelineCollapsed(true);
+    showToast('Monitor de pipeline recolhido.');
+  });
+}
+
+if (togglePipelineHeaderBtn) {
+  togglePipelineHeaderBtn.addEventListener('click', () => {
+    const isCurrentlyCollapsed = pipelinePanel.classList.contains('is-collapsed');
+    setPipelineCollapsed(!isCurrentlyCollapsed);
+  });
+}
+
+if (reopenPipelineBtn) {
+  reopenPipelineBtn.addEventListener('click', () => {
+    setPipelineCollapsed(false);
+  });
+}
+
+// ===================================================================
+//  OLLAMA ENGINE INFO MODAL
+// ===================================================================
+const ollamaModal = document.getElementById('ollamaModal');
+const ollamaStatusBtn = document.getElementById('ollamaStatusBtn');
+const overviewOllamaDetailsBtn = document.getElementById('overviewOllamaDetailsBtn');
+const closeOllamaModalBtn = document.getElementById('closeOllamaModalBtn');
+const confirmOllamaModalBtn = document.getElementById('confirmOllamaModalBtn');
+
+function openOllamaModal() {
+  if (ollamaModal) ollamaModal.style.display = 'flex';
+}
+
+function closeOllamaModal() {
+  if (ollamaModal) ollamaModal.style.display = 'none';
+}
+
+if (ollamaStatusBtn) ollamaStatusBtn.addEventListener('click', openOllamaModal);
+if (overviewOllamaDetailsBtn) overviewOllamaDetailsBtn.addEventListener('click', openOllamaModal);
+if (closeOllamaModalBtn) closeOllamaModalBtn.addEventListener('click', closeOllamaModal);
+if (confirmOllamaModalBtn) confirmOllamaModalBtn.addEventListener('click', closeOllamaModal);
+
+if (ollamaModal) {
+  ollamaModal.addEventListener('click', (e) => {
+    if (e.target === ollamaModal) closeOllamaModal();
+  });
+}
+
+// ===================================================================
+//  WEB SPEECH API (Text-to-Speech & Voice Recognition)
+// ===================================================================
+let autoVoiceEnabled = false;
+const voiceToggleBtn = document.getElementById('voiceToggleBtn');
+
+if (voiceToggleBtn) {
+  voiceToggleBtn.addEventListener('click', () => {
+    autoVoiceEnabled = !autoVoiceEnabled;
+    voiceToggleBtn.classList.toggle('active', autoVoiceEnabled);
+    voiceToggleBtn.textContent = autoVoiceEnabled ? '🔊 Voz Ativa' : '🔇 Voz';
+    if (autoVoiceEnabled) {
+      showToast('🔊 Resposta por voz ativada!');
+    } else {
+      if (window.speechSynthesis) window.speechSynthesis.cancel();
+    }
+  });
+}
+
+function speakText(text) {
+  if (!window.speechSynthesis) return;
+  window.speechSynthesis.cancel();
+  
+  // Clean text from code blocks for cleaner voice readout
+  const cleanText = text.replace(/```[\s\S]*?```/g, 'Bloco de código gerado.').replace(/[*_#`]/g, '');
+  const utterance = new SpeechSynthesisUtterance(cleanText);
+  utterance.lang = 'pt-BR';
+  utterance.rate = 1.05;
+  utterance.pitch = 1.0;
+  window.speechSynthesis.speak(utterance);
+}
+
+// Custom Agent Modal Voice & Controls
 const agentModal = document.getElementById('agentModal');
 const agentModalCloseBtn = document.getElementById('agentModalCloseBtn');
 const agentModalTitle = document.getElementById('agentModalTitle');
@@ -27,12 +311,12 @@ const agentModalMicBtn = document.getElementById('agentModalMicBtn');
 const agentModalSpeakerBtn = document.getElementById('agentModalSpeakerBtn');
 
 let currentCustomAgent = null;
-let isAudioEnabled = true;
+let isModalAudioEnabled = true;
 
-// Web Speech API Configs
 const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
 let recognition = null;
-if (SpeechRecognition) {
+
+if (SpeechRecognition && agentModalMicBtn) {
   recognition = new SpeechRecognition();
   recognition.lang = 'pt-BR';
   recognition.interimResults = false;
@@ -43,7 +327,7 @@ if (SpeechRecognition) {
   
   recognition.onresult = (event) => {
     const transcript = event.results[0][0].transcript;
-    agentModalInput.value += transcript;
+    agentModalInput.value += (agentModalInput.value ? ' ' : '') + transcript;
   };
   
   recognition.onerror = (event) => {
@@ -55,22 +339,16 @@ if (SpeechRecognition) {
   recognition.onend = () => {
     agentModalMicBtn.classList.remove('recording');
   };
-} else {
-  agentModalMicBtn.style.display = 'none';
-  console.warn("SpeechRecognition não suportado neste navegador.");
-}
 
-function speakText(text) {
-  if (!isAudioEnabled) return;
-  if (!('speechSynthesis' in window)) return;
-  
-  // Cancela qualquer fala anterior
-  window.speechSynthesis.cancel();
-  
-  const utterance = new SpeechSynthesisUtterance(text);
-  utterance.lang = 'pt-BR';
-  // Configurações básicas de voz (pode variar de acordo com o SO)
-  window.speechSynthesis.speak(utterance);
+  agentModalMicBtn.addEventListener('click', () => {
+    if (agentModalMicBtn.classList.contains('recording')) {
+      recognition.stop();
+    } else {
+      recognition.start();
+    }
+  });
+} else if (agentModalMicBtn) {
+  agentModalMicBtn.style.display = 'none';
 }
 
 function openAgentModal(name, role) {
@@ -79,196 +357,168 @@ function openAgentModal(name, role) {
   agentModalRole.textContent = role;
   agentModalWelcomeName.textContent = name;
   
-  // Limpa histórico
   agentModalChat.innerHTML = `
-    <div class="message assistant">
-      Olá! Eu sou o <strong>${escapeHtml(name)}</strong>. Como posso ajudar?
+    <div class="chat-bubble assistant">
+      <strong>${escapeHtml(name.toUpperCase())}</strong>
+      <div>Olá! Eu sou o <strong>${escapeHtml(name)}</strong>. Como posso ajudar você agora?</div>
     </div>
   `;
   agentModalInput.value = '';
-  
   agentModal.style.display = 'flex';
 }
 
 function closeAgentModal() {
-  agentModal.style.display = 'none';
-  window.speechSynthesis.cancel();
+  if (agentModal) agentModal.style.display = 'none';
+  if (window.speechSynthesis) window.speechSynthesis.cancel();
 }
 
-agentModalCloseBtn.addEventListener('click', closeAgentModal);
-agentModal.addEventListener('click', (e) => {
-  if (e.target === agentModal) closeAgentModal();
-});
+if (agentModalCloseBtn) agentModalCloseBtn.addEventListener('click', closeAgentModal);
+if (agentModal) {
+  agentModal.addEventListener('click', (e) => {
+    if (e.target === agentModal) closeAgentModal();
+  });
+}
 
-agentModalSpeakerBtn.addEventListener('click', () => {
-  isAudioEnabled = !isAudioEnabled;
-  if (isAudioEnabled) {
-    agentModalSpeakerBtn.classList.add('active');
-    agentModalSpeakerBtn.style.opacity = '1';
-    showToast('Áudio ativado');
-  } else {
-    agentModalSpeakerBtn.classList.remove('active');
-    agentModalSpeakerBtn.style.opacity = '0.5';
-    window.speechSynthesis.cancel();
-    showToast('Áudio desativado');
-  }
-});
-
-agentModalMicBtn.addEventListener('click', () => {
-  if (recognition) {
-    if (agentModalMicBtn.classList.contains('recording')) {
-      recognition.stop();
-    } else {
-      recognition.start();
+if (agentModalSpeakerBtn) {
+  agentModalSpeakerBtn.addEventListener('click', () => {
+    isModalAudioEnabled = !isModalAudioEnabled;
+    agentModalSpeakerBtn.classList.toggle('active', isModalAudioEnabled);
+    if (!isModalAudioEnabled && window.speechSynthesis) {
+      window.speechSynthesis.cancel();
     }
-  }
-});
+    showToast(isModalAudioEnabled ? 'Áudio ativado' : 'Áudio desativado');
+  });
+}
 
 function appendModalMessage(text, sender) {
   const el = document.createElement('div');
-  el.className = `message ${sender}`;
+  el.className = `chat-bubble ${sender}`;
   
-  // Trata blocos de código
   let htmlText = escapeHtml(text);
   htmlText = htmlText.replace(/```([\s\S]*?)```/g, '<pre><code>$1</code></pre>');
   htmlText = htmlText.replace(/\n/g, '<br/>');
   
-  el.innerHTML = htmlText;
+  el.innerHTML = `<strong>${sender === 'user' ? 'VOCÊ' : escapeHtml(currentCustomAgent.toUpperCase())}</strong><div>${htmlText}</div>`;
   agentModalChat.appendChild(el);
   agentModalChat.scrollTop = agentModalChat.scrollHeight;
 }
 
-agentModalSendBtn.addEventListener('click', async () => {
-  const message = agentModalInput.value.trim();
-  if (!message || !currentCustomAgent) return;
-  
-  appendModalMessage(message, 'user');
-  agentModalInput.value = '';
-  agentModalSendBtn.disabled = true;
-  
-  // Adiciona indicador de 'digitando'
-  const thinkingId = 'modal-thinking-' + Date.now();
-  const thinkingEl = document.createElement('div');
-  thinkingEl.className = 'message assistant thinking';
-  thinkingEl.id = thinkingId;
-  thinkingEl.textContent = 'Processando...';
-  agentModalChat.appendChild(thinkingEl);
-  agentModalChat.scrollTop = agentModalChat.scrollHeight;
-  
-  try {
-    const res = await fetch(getApiUrl('/api/chat'), {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        agent: currentCustomAgent,
-        message: message,
-        email: adminEmail || sessionStorage.getItem('alexUserEmail')
-      })
-    });
+if (agentModalSendBtn) {
+  agentModalSendBtn.addEventListener('click', async () => {
+    const message = agentModalInput.value.trim();
+    if (!message || !currentCustomAgent) return;
     
-    document.getElementById(thinkingId).remove();
+    appendModalMessage(message, 'user');
+    agentModalInput.value = '';
+    agentModalSendBtn.disabled = true;
     
-    if (!res.ok) throw new Error('Falha de rede ao conectar com o agente.');
-    const data = await res.json();
+    const thinkingEl = document.createElement('div');
+    thinkingEl.className = 'chat-bubble assistant';
+    thinkingEl.innerHTML = `<strong>${escapeHtml(currentCustomAgent.toUpperCase())}</strong><div><em>Pensando...</em></div>`;
+    agentModalChat.appendChild(thinkingEl);
+    agentModalChat.scrollTop = agentModalChat.scrollHeight;
     
-    appendModalMessage(data.response, 'assistant');
-    speakText(data.response); // Lê a resposta
-    
-  } catch (err) {
-    document.getElementById(thinkingId).remove();
-    appendModalMessage(`Erro: ${err.message}`, 'system');
-  } finally {
-    agentModalSendBtn.disabled = false;
-  }
-});
+    try {
+      const res = await fetch(getApiUrl('/api/chat'), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          agent: currentCustomAgent,
+          message: message,
+          email: adminEmail || sessionStorage.getItem('alexUserEmail')
+        })
+      });
+      
+      thinkingEl.remove();
+      if (!res.ok) throw new Error('Falha ao conectar com o agente.');
+      const data = await res.json();
+      
+      appendModalMessage(data.response, 'assistant');
+      if (isModalAudioEnabled) {
+        speakText(data.response);
+      }
+    } catch (err) {
+      thinkingEl.remove();
+      appendModalMessage(`Erro: ${err.message}`, 'assistant');
+    } finally {
+      agentModalSendBtn.disabled = false;
+    }
+  });
 
-agentModalInput.addEventListener('keypress', (e) => {
-  if (e.key === 'Enter' && !e.shiftKey) {
-    e.preventDefault();
-    agentModalSendBtn.click();
-  }
-});
-
-// Debounce helper for performance optimization
-function debounce(func, wait) {
-  let timeout;
-  return function(...args) {
-    const context = this;
-    clearTimeout(timeout);
-    timeout = setTimeout(() => func.apply(context, args), wait);
-  };
+  agentModalInput.addEventListener('keypress', (e) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      agentModalSendBtn.click();
+    }
+  });
 }
 
+// ===================================================================
+//  CENTRAL BUILDER CHAT & SUGGESTIONS
+// ===================================================================
 const chatHistory = document.getElementById('chatHistory');
 const sendBtn = document.getElementById('sendBtn');
 const messageInput = document.getElementById('message');
 const statusEl = document.getElementById('status');
 const chatStatusText = document.getElementById('chatStatusText');
+const chatSuggestions = document.getElementById('chatSuggestions');
 
-// RAG Elements
-const ragUploadForm = document.getElementById('ragUploadForm');
-const ragFile = document.getElementById('ragFile');
-const ragStatus = document.getElementById('ragStatus');
+function getSelectedAgent() {
+  const selected = document.querySelector('input[name="agent"]:checked');
+  return selected ? selected.value : 'alex';
+}
 
-// DB Elements
-const dbTitle = document.getElementById('dbTitle');
-const dbContent = document.getElementById('dbContent');
-const dbSaveBtn = document.getElementById('dbSaveBtn');
-const dbStatus = document.getElementById('dbStatus');
+function appendMessage(author, text, type) {
+  const bubble = document.createElement('div');
+  const agentClass = type === 'assistant' ? (getSelectedAgent() === 'alia' ? 'alia' : 'alex') : '';
+  bubble.className = `chat-bubble ${type} ${agentClass}`;
+  
+  let formattedText = escapeHtml(text);
+  formattedText = formattedText.replace(/```([\s\S]*?)```/g, '<pre><code>$1</code></pre>');
+  formattedText = formattedText.replace(/\n/g, '<br>');
+  
+  const speakerBtn = type === 'assistant'
+    ? `<button class="speak-btn" title="Ouvir resposta" onclick="(function(btn) {
+        if(window.speechSynthesis && window.speechSynthesis.speaking) { window.speechSynthesis.cancel(); btn.classList.remove('speaking'); return; }
+        btn.classList.add('speaking');
+        var u = new SpeechSynthesisUtterance(${JSON.stringify(text)});
+        u.lang = 'pt-BR';
+        u.onend = function(){ btn.classList.remove('speaking'); };
+        if(window.speechSynthesis) window.speechSynthesis.speak(u);
+      })(this)">🔈</button>`
+    : '';
+  
+  bubble.innerHTML = `
+    <strong>${escapeHtml(author)}</strong>${speakerBtn}
+    <div>${formattedText}</div>
+  `;
+  
+  chatHistory.appendChild(bubble);
+  chatHistory.scrollTop = chatHistory.scrollHeight;
+  
+  if (type === 'assistant' && autoVoiceEnabled) {
+    speakText(text);
+  }
+}
 
-// Creator Elements
-const customAgentName = document.getElementById('customAgentName');
-const customAgentRole = document.getElementById('customAgentRole');
-const createAgentBtn = document.getElementById('createAgentBtn');
-const creatorStatus = document.getElementById('creatorStatus');
-const customAgentsList = document.getElementById('customAgentsList');
-const agentsTabList = document.getElementById('agentsTabList');
-const appContainer = document.getElementById('appContainer');
-const userRegistrationForm = document.getElementById('userRegistrationForm');
-const userNameInput = document.getElementById('userName');
-const userEmailInput = document.getElementById('userEmail');
-const usersList = document.getElementById('usersList');
-const userStatus = document.getElementById('userStatus');
-const agentBuilderTab = document.getElementById('agentBuilderTab');
-const agentBuilderTabButton = document.querySelector('[data-target="agentBuilderTab"]');
-const closeAgentBuilderBtn = document.getElementById('closeAgentBuilderBtn');
-const builderAgentName = document.getElementById('builderAgentName');
-const builderAgentGoal = document.getElementById('builderAgentGoal');
-const builderRequirements = document.getElementById('builderRequirements');
-const buildAgentBtn = document.getElementById('buildAgentBtn');
-const builderStatus = document.getElementById('builderStatus');
-const builderChatHistory = document.getElementById('builderChatHistory');
-const builderChatInput = document.getElementById('builderChatInput');
-const builderChatSendBtn = document.getElementById('builderChatSendBtn');
-const publicPageForm = document.getElementById('publicPageForm');
-const pageSlug = document.getElementById('pageSlug');
-const pageTitle = document.getElementById('pageTitle');
-const pageContent = document.getElementById('pageContent');
-const pageStatus = document.getElementById('pageStatus');
-const publicPagesList = document.getElementById('publicPagesList');
-const publishPageBtn = document.getElementById('publishPageBtn');
-const cancelPageEditBtn = document.getElementById('cancelPageEditBtn');
-let editingPageSlug = null;
-const pageEditorTab = document.getElementById('pageEditorTab');
-const pageEditorForm = document.getElementById('pageEditorForm');
-const editorPageSlug = document.getElementById('editorPageSlug');
-const editorPageTitle = document.getElementById('editorPageTitle');
-const editorPageContent = document.getElementById('editorPageContent');
-const editorStatus = document.getElementById('editorStatus');
-const editorPreview = document.getElementById('editorPreview');
-const editorPreviewUrl = document.getElementById('editorPreviewUrl');
-const closePageEditorBtn = document.getElementById('closePageEditorBtn');
-const previewPageBtn = document.getElementById('previewPageBtn');
-const editorChatInput = document.getElementById('editorChatInput');
-const editorChatSendBtn = document.getElementById('editorChatSendBtn');
-const editorChatHistory = document.getElementById('editorChatHistory');
+// Bind Suggestion Chips
+if (chatSuggestions) {
+  chatSuggestions.querySelectorAll('.suggestion-chip').forEach(chip => {
+    chip.addEventListener('click', () => {
+      const prompt = chip.getAttribute('data-prompt');
+      if (prompt && messageInput) {
+        messageInput.value = prompt;
+        messageInput.focus();
+        sendMessage();
+      }
+    });
+  });
+}
 
-// Sandbox Elements
+// Pipeline Elements
 const sandboxSection = document.getElementById('sandboxSection');
 const sandboxContainer = document.getElementById('sandboxContainer');
 const finishScreenBtn = document.getElementById('finishScreenBtn');
-
-// Pipeline Elements
 const pipelineLogs = document.getElementById('pipelineLogs');
 const diffView = document.getElementById('diffView');
 const metricBuild = document.getElementById('metric-build');
@@ -284,331 +534,18 @@ const steps = {
   deploy: document.getElementById('step-deploy')
 };
 
-// Global Toast function
-window.showToast = function(message) {
-  const toast = document.getElementById('toast');
-  toast.textContent = message;
-  toast.classList.add('show');
-  setTimeout(() => {
-    toast.classList.remove('show');
-  }, 4000);
-};
-
-function getSelectedAgent() {
-  const selected = document.querySelector('input[name="agent"]:checked');
-  return selected ? selected.value : 'alex';
-}
-
-function escapeHtml(value) {
-  return value
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#039;');
-}
-
-// ===================================================================
-//  WEB SPEECH API — Text-to-Speech for chat responses
-// ===================================================================
-let autoVoiceEnabled = false;
-const voiceToggleBtn = document.getElementById('voiceToggleBtn');
-
-if(voiceToggleBtn) {
-  voiceToggleBtn.addEventListener('click', () => {
-    autoVoiceEnabled = !autoVoiceEnabled;
-    voiceToggleBtn.classList.toggle('active', autoVoiceEnabled);
-    voiceToggleBtn.textContent = autoVoiceEnabled ? '🔊 Voz' : '🔇 Voz';
-    if(autoVoiceEnabled) {
-      showToast('🔊 Resposta por voz ativada!');
-    } else {
-      window.speechSynthesis.cancel();
-    }
-  });
-}
-
-function speakText(text) {
-  if(!window.speechSynthesis) return;
-  window.speechSynthesis.cancel();
-  const utterance = new SpeechSynthesisUtterance(text);
-  utterance.lang = 'pt-BR';
-  utterance.rate = 1.0;
-  utterance.pitch = 1.0;
-  window.speechSynthesis.speak(utterance);
-}
-
-function appendMessage(author, text, type) {
-  const bubble = document.createElement('div');
-  const agentClass = type === 'assistant' ? (getSelectedAgent() === 'alia' ? 'alia' : 'alex') : '';
-  bubble.className = `chat-bubble ${type} ${agentClass}`;
-  
-  const formattedText = escapeHtml(text).replace(/\n/g, '<br>');
-  
-  // Add a speaker button only to assistant messages
-  const speakerBtn = type === 'assistant'
-    ? `<button class="speak-btn" title="Ouvir resposta" onclick="(function(btn) {
-        if(window.speechSynthesis.speaking) { window.speechSynthesis.cancel(); btn.classList.remove('speaking'); return; }
-        btn.classList.add('speaking');
-        var u = new SpeechSynthesisUtterance(${JSON.stringify(text)});
-        u.lang = 'pt-BR';
-        u.onend = function(){ btn.classList.remove('speaking'); };
-        window.speechSynthesis.speak(u);
-      })(this)">🔈</button>`
-    : '';
-  
-  bubble.innerHTML = `
-    <strong>${escapeHtml(author)}</strong>${speakerBtn}
-    <div>${formattedText}</div>
-  `;
-  chatHistory.prepend(bubble);
-  chatHistory.scrollTop = 0;
-  
-  // Auto-speak if voice mode is on
-  if(type === 'assistant' && autoVoiceEnabled) {
-    speakText(text);
-  }
-}
-
-// 1. RAG Ingestion Upload
-ragUploadForm.addEventListener('submit', async (e) => {
-  e.preventDefault();
-  const file = ragFile.files[0];
-  if (!file) return;
-
-  ragStatus.textContent = 'Enviando documento...';
-  ragStatus.className = 'mini-status';
-
-  const formData = new FormData();
-  formData.append('file', file);
-  formData.append('agent', getSelectedAgent());
-
-  try {
-    const uploadRes = await fetch(getApiUrl('/api/upload'), {
-      method: 'POST',
-      body: formData
-    });
-
-    if (!uploadRes.ok) throw new Error('Erro no upload');
-    const meta = await uploadRes.json();
-    
-    ragStatus.textContent = 'Processando indexação RAG...';
-    
-    // Call deploy ingest to build scripts
-    const ingestRes = await fetch(getApiUrl('/api/action/deploy-ingest'), {
-      method: 'POST'
-    });
-    if (!ingestRes.ok) throw new Error('Erro na indexação');
-    
-    ragStatus.textContent = 'Sucesso! Documento carregado no RAG.';
-    ragStatus.className = 'mini-status';
-    showToast(`RAG Atualizado com: ${file.name}`);
-    ragFile.value = '';
-  } catch (err) {
-    ragStatus.textContent = `Erro: ${err.message}`;
-    ragStatus.className = 'mini-status error';
-  }
-});
-
-// 2. Ingest to database (Fonte da Verdade)
-dbSaveBtn.addEventListener('click', async () => {
-  const title = dbTitle.value.trim();
-  const content = dbContent.value.trim();
-  if (!title || !content) {
-    dbStatus.textContent = 'Preencha título e conteúdo.';
-    dbStatus.className = 'mini-status error';
-    return;
-  }
-
-  dbStatus.textContent = 'Gravando no DB...';
-  dbStatus.className = 'mini-status';
-
-  try {
-    const res = await fetch(getApiUrl('/api/db'), {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ title, content })
-    });
-    
-    if (!res.ok) throw new Error('Erro ao salvar no DB');
-    
-    dbStatus.textContent = 'Fato salvo na Fonte da Verdade (DB).';
-    showToast('Fonte da Verdade atualizada!');
-    dbTitle.value = '';
-    dbContent.value = '';
-  } catch (err) {
-    dbStatus.textContent = `Erro: ${err.message}`;
-    dbStatus.className = 'mini-status error';
-  }
-});
-
-// 3. Create Custom Agent simulation and persistence
-createAgentBtn.addEventListener('click', async () => {
-  const email = adminEmail || sessionStorage.getItem('alexUserEmail');
-  if (!email) { showToast('Autentique-se para construir um agente.'); return; }
-  window.location.href = '/?mode=agent-builder';
-});
-
-function showAgentBuilder() {
-  document.querySelectorAll('.tab-btn').forEach(button => button.classList.remove('active'));
-  document.querySelectorAll('.tab-content').forEach(content => { content.classList.remove('active'); content.style.display = 'none'; });
-  agentBuilderTabButton.style.display = 'inline-flex';
-  agentBuilderTabButton.classList.add('active');
-  agentBuilderTab.classList.add('active');
-  agentBuilderTab.style.display = 'flex';
-}
-
-function activateWorkspaceMode() {
-  const mode = new URLSearchParams(window.location.search).get('mode');
-  if (mode === 'agent-builder') {
-    showAgentBuilder();
-    builderPrompt();
-  } else if (mode === 'agents') {
-    const agentsButton = document.querySelector('[data-target="agentsTab"]');
-    if (agentsButton) agentsButton.click();
-  }
-}
-
-function addBuilderMessage(author, text) {
-  const message = document.createElement('div');
-  message.className = `builder-message ${author === 'Você' ? 'user' : 'assistant'}`;
-  message.innerHTML = `<strong>${escapeHtml(author)}</strong><div>${escapeHtml(text).replace(/\n/g, '<br>')}</div>`;
-  builderChatHistory.appendChild(message);
-  builderChatHistory.scrollTop = builderChatHistory.scrollHeight;
-}
-
-function builderPrompt() {
-  addBuilderMessage('Alia', 'Para construir um agente realmente útil, vou entender: quem usará, qual problema ele resolve, quais entradas receberá, que resposta ou ação deve entregar, quais fontes poderá consultar, quais limites deve respeitar e como saberemos que funcionou. Conte primeiro o objetivo e o público.');
-}
-
-builderChatSendBtn.addEventListener('click', async () => {
-  const message = builderChatInput.value.trim();
-  if (!message) return;
-  addBuilderMessage('Você', message);
-  builderChatInput.value = '';
-  const currentRequirements = builderRequirements.value;
-  const response = await fetch(getApiUrl('/api/chat'), { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ agent: 'alia', email: adminEmail || sessionStorage.getItem('alexUserEmail'), message: `Estamos construindo um agente. Objetivo: ${builderAgentGoal.value}. Requisitos já anotados: ${currentRequirements}. O cliente disse: ${message}. Faça perguntas de descoberta de requisitos que ainda faltam e, ao final, organize uma lista objetiva de requisitos confirmados.` }) });
-  const data = await response.json();
-  addBuilderMessage('Alia', data.response || 'Não foi possível responder agora.');
-  builderRequirements.value = `${builderRequirements.value}${builderRequirements.value ? '\n\n' : ''}Cliente: ${message}\nAlia: ${data.response || ''}`;
-});
-
-builderChatInput.addEventListener('keydown', event => { if (event.key === 'Enter') { event.preventDefault(); builderChatSendBtn.click(); } });
-
-buildAgentBtn.addEventListener('click', async () => {
-  const email = adminEmail || sessionStorage.getItem('alexUserEmail');
-  if (!builderAgentName.value.trim() || !builderAgentGoal.value.trim() || !builderRequirements.value.trim()) {
-    builderStatus.textContent = 'Conclua o objetivo e a descoberta de requisitos com a Alia antes de construir.';
-    builderStatus.className = 'mini-status error';
-    return;
-  }
-  builderStatus.textContent = 'Alex está construindo e validando o agente...';
-  const response = await fetch(getApiUrl('/api/agents/custom'), { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name: builderAgentName.value.trim(), role: `${builderAgentGoal.value.trim()}\n\nRequisitos: ${builderRequirements.value.trim()}`, email }) });
-  const data = await response.json();
-  if (!response.ok) { builderStatus.textContent = data.message || 'Não foi possível construir o agente.'; builderStatus.className = 'mini-status error'; return; }
-  builderStatus.textContent = 'Agente construído. Abrindo Meus agentes...';
-  setTimeout(() => { window.location.href = '/?mode=agents'; }, 500);
-});
-
-closeAgentBuilderBtn.addEventListener('click', () => { window.location.href = '/'; });
-
-// Custom Agents Loading & Rendering
-async function loadCustomAgents() {
-  try {
-    const email = adminEmail || sessionStorage.getItem('alexUserEmail');
-    if (!email) return;
-    const res = await fetch(getApiUrl(`/api/agents/custom?email=${encodeURIComponent(email)}`));
-    if (!res.ok) return;
-    const agents = await res.json();
-    renderCustomAgents(agents);
-  } catch (err) {
-    console.error('Erro ao carregar agentes instanciados', err);
-  }
-}
-
-function renderCustomAgents(agents) {
-  customAgentsList.innerHTML = '';
-  if (agentsTabList) agentsTabList.innerHTML = '';
-  if (agents.length === 0) {
-    customAgentsList.innerHTML = '<span style="font-size: 0.75rem; color: var(--text-secondary);">Nenhum agente instanciado ainda.</span>';
-    if (agentsTabList) agentsTabList.innerHTML = '<span class="empty-state">Nenhum agente criado ainda.</span>';
-    return;
-  }
-  
-  agents.forEach(agent => {
-    const el = document.createElement('div');
-    el.className = 'custom-agent-item';
-    el.innerHTML = `
-      <div class="custom-agent-info">
-        <span class="custom-agent-name">${escapeHtml(agent.name)}</span>
-        <span class="custom-agent-role">${escapeHtml(agent.role)}</span>
-      </div>
-      <div>
-        <button class="btn-open-chat" data-name="${escapeHtml(agent.name)}" data-role="${escapeHtml(agent.role)}" title="Conversar com Agente">💬 Chat</button>
-        <button class="btn-remove-agent" data-id="${agent.id}" title="Remover Agente (Apenas Admin)">Remover</button>
-      </div>
-    `;
-    
-    // Mostra botão de excluir apenas se for admin
-    const removeBtn = el.querySelector('.btn-remove-agent');
-    if (adminEmail) {
-      removeBtn.style.display = 'inline-block';
-    }
-    
-    removeBtn.addEventListener('click', () => deleteCustomAgent(agent.id));
-    
-    // Evento para abrir o modal de chat
-    const chatBtn = el.querySelector('.btn-open-chat');
-    chatBtn.addEventListener('click', () => openAgentModal(agent.name, agent.role));
-
-    customAgentsList.appendChild(el);
-    if (agentsTabList) {
-      const tabAgent = el.cloneNode(true);
-      tabAgent.querySelector('.btn-open-chat').addEventListener('click', () => openAgentModal(agent.name, agent.role));
-      tabAgent.querySelector('.btn-remove-agent').addEventListener('click', () => deleteCustomAgent(agent.id));
-      agentsTabList.appendChild(tabAgent);
-    }
-  });
-}
-
-async function deleteCustomAgent(id) {
-  if (!adminEmail) {
-    showToast('Apenas administradores podem excluir agentes.');
-    return;
-  }
-  
-  try {
-    const res = await fetch(getApiUrl(`/api/agents/custom/${id}`), {
-      method: 'DELETE',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email: adminEmail })
-    });
-    
-    if (res.ok) {
-      showToast('Agente removido com sucesso!');
-      loadCustomAgents();
-    } else {
-      const error = await res.json();
-      showToast(`Erro ao remover: ${error.message}`);
-    }
-  } catch (err) {
-    showToast(`Erro: ${err.message}`);
-  }
-}
-
-// Load agents on startup
-loadCustomAgents();
-
-// 4. Trigger Alex Pipeline & dynamic UI rendering
 async function triggerAlexPipeline(screenConfig) {
-  // Reset steps
-  Object.values(steps).forEach(step => {
-    step.classList.remove('active', 'completed');
-  });
+  if (steps.ingest) {
+    Object.values(steps).forEach(step => {
+      if (step) step.classList.remove('active', 'completed');
+    });
+  }
   
-  pipelineLogs.innerHTML = '';
-  diffView.textContent = 'Analisando otimizações...';
+  if (pipelineLogs) pipelineLogs.innerHTML = '';
+  if (diffView) diffView.textContent = 'Analisando otimizações...';
   
   const addLog = (text, type = 'info') => {
+    if (!pipelineLogs) return;
     const log = document.createElement('div');
     log.className = `log-entry ${type}`;
     log.textContent = text;
@@ -619,7 +556,6 @@ async function triggerAlexPipeline(screenConfig) {
   addLog('Iniciando pipeline do Alex...', 'system');
 
   try {
-    // Call backend to compile screen
     const res = await fetch(getApiUrl('/api/pipeline/run'), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -629,113 +565,78 @@ async function triggerAlexPipeline(screenConfig) {
     if (!res.ok) throw new Error('Falha na compilação do código');
     const buildResult = await res.json();
 
-    // Step 1: Ingest
-    steps.ingest.classList.add('active');
-    addLog('[1/5] Recebida parametrização da Alia. Ingerindo requisitos...');
-    await new Promise(r => setTimeout(r, 600));
-    steps.ingest.classList.add('completed');
-    steps.ingest.classList.remove('active');
+    if (steps.ingest) {
+      steps.ingest.classList.add('active');
+      addLog('[1/5] Recebida parametrização da Alia. Ingerindo requisitos...');
+      await new Promise(r => setTimeout(r, 400));
+      steps.ingest.classList.add('completed');
+      steps.ingest.classList.remove('active');
 
-    // Step 2: Synthesis
-    steps.gen.classList.add('active');
-    addLog('[2/5] Gerando árvore DOM e componentes dinâmicos em HTML5...');
-    await new Promise(r => setTimeout(r, 800));
-    steps.gen.classList.add('completed');
-    steps.gen.classList.remove('active');
+      steps.gen.classList.add('active');
+      addLog('[2/5] Gerando árvore DOM e componentes dinâmicos em HTML5...');
+      await new Promise(r => setTimeout(r, 500));
+      steps.gen.classList.add('completed');
+      steps.gen.classList.remove('active');
 
-    // Step 3: Optimization
-    steps.opt.classList.add('active');
-    addLog('[3/5] Alex aplicando otimizações de performance de código...');
-    
-    // Render the beautiful performance optimization diff!
-    diffView.textContent = `// ANTES (CÓDIGO LENTO / COM REFLLOWS)
-form.addEventListener('input', (e) => {
-  recalculateFormLayoutHeavy();
-});
+      steps.opt.classList.add('active');
+      addLog('[3/5] Alex aplicando otimizações de performance...');
+      
+      if (diffView) {
+        diffView.textContent = `// ANTES (CÓDIGO LENTO)
+form.addEventListener('input', () => recalculateHeavy());
 
-// DEPOIS (OTIMIZAÇÃO DO ALEX - COM DEBOUNCE E RAF)
-let layoutTimeout;
-form.addEventListener('input', (e) => {
-  clearTimeout(layoutTimeout);
-  layoutTimeout = setTimeout(() => {
-    requestAnimationFrame(recalculateFormLayoutHeavy);
-  }, 150);
-});`;
+// DEPOIS (OTIMIZAÇÃO DO ALEX COM DEBOUNCE)
+form.addEventListener('input', debounce(() => recalculateHeavy(), 150));`;
+      }
 
-    addLog('✔ OTIMIZADO: Adicionado Debouncing e RequestAnimationFrame.');
-    addLog('✔ OTIMIZADO: CSS modularizado com Flexbox/Grid nativos (zero frameworks).');
-    await new Promise(r => setTimeout(r, 1000));
-    steps.opt.classList.add('completed');
-    steps.opt.classList.remove('active');
+      addLog('✔ OTIMIZADO: Debouncing e Grid CSS nativo.');
+      await new Promise(r => setTimeout(r, 500));
+      steps.opt.classList.add('completed');
+      steps.opt.classList.remove('active');
 
-    // Step 4: Test
-    steps.test.classList.add('active');
-    addLog('[4/5] Executando conjunto de testes unitários...');
-    addLog('✔ Test: Validar renderização dos inputs -> PASS');
-    addLog('✔ Test: Testar envio assíncrono -> PASS');
-    await new Promise(r => setTimeout(r, 700));
-    steps.test.classList.add('completed');
-    steps.test.classList.remove('active');
+      steps.test.classList.add('active');
+      addLog('[4/5] Executando testes unitários -> PASS');
+      await new Promise(r => setTimeout(r, 400));
+      steps.test.classList.add('completed');
+      steps.test.classList.remove('active');
 
-    // Step 5: Deploy
-    steps.deploy.classList.add('active');
-    addLog('[5/5] Realizando deploy no Sandbox de Telas Dinâmicas...');
-    await new Promise(r => setTimeout(r, 600));
-    steps.deploy.classList.add('completed');
+      steps.deploy.classList.add('active');
+      addLog('[5/5] Deploy no Sandbox concluído!');
+      steps.deploy.classList.add('completed');
+    }
 
-    // Update metrics
-    metricBuild.textContent = `${buildResult.metrics.buildTimeMs}ms`;
-    metricSize.textContent = `${buildResult.metrics.codeSizeBits} bits`;
-    metricSavings.textContent = `-${buildResult.metrics.memorySavingsPercent}%`;
-    metricPerf.textContent = `${buildResult.metrics.lighthousePerformance}/100`;
+    if (metricBuild) metricBuild.textContent = `${buildResult.metrics.buildTimeMs}ms`;
+    if (metricSize) metricSize.textContent = `${buildResult.metrics.codeSizeBits} bits`;
+    if (metricSavings) metricSavings.textContent = `-${buildResult.metrics.memorySavingsPercent}%`;
+    if (metricPerf) metricPerf.textContent = `${buildResult.metrics.lighthousePerformance}/100`;
 
-    // Render screen inside sandbox
-    sandboxContainer.innerHTML = buildResult.html;
-    
-    // Execute screen script
-    const scriptEl = document.createElement('script');
-    scriptEl.textContent = buildResult.js;
-    sandboxContainer.appendChild(scriptEl);
+    if (sandboxContainer) {
+      sandboxContainer.innerHTML = buildResult.html;
+      const scriptEl = document.createElement('script');
+      scriptEl.textContent = buildResult.js;
+      sandboxContainer.appendChild(scriptEl);
+    }
 
-    // Show sandbox
-    sandboxSection.style.display = 'flex';
-    sandboxSection.scrollIntoView({ behavior: 'smooth' });
+    if (sandboxSection) {
+      sandboxSection.style.display = 'flex';
+      sandboxSection.scrollIntoView({ behavior: 'smooth' });
+    }
 
-    addLog('Pipeline concluído. Tela pronta para uso!', 'success');
-    showToast(`Tela "${buildResult.title}" criada por Alex!`);
-
+    showToast(`Tela "${buildResult.title}" compilada por Alex!`);
   } catch (err) {
     addLog(`[ERRO] Pipeline falhou: ${err.message}`, 'error');
     showToast(`Erro na pipeline: ${err.message}`);
   }
 }
 
-// 5. Delete screen on Finish (Finalizar)
-if (finishScreenBtn && sandboxSection) finishScreenBtn.addEventListener('click', () => {
-  sandboxSection.style.opacity = '1';
-  
-  // Fade out animation
-  let opacity = 1;
-  const timer = setInterval(() => {
-    if (opacity <= 0.1) {
-      clearInterval(timer);
-      sandboxSection.style.display = 'none';
-      sandboxContainer.innerHTML = '';
-      sandboxSection.style.opacity = '1'; // reset
-      showToast('Página dinâmica excluída com sucesso.');
-      
-      // Update pipeline logs
-      const log = document.createElement('div');
-      log.className = 'log-entry system';
-      log.textContent = '[Pipeline] Tela finalizada e desalocada da memória.';
-      pipelineLogs.appendChild(log);
-    }
-    sandboxSection.style.opacity = opacity;
-    opacity -= 0.15;
-  }, 30);
-});
+if (finishScreenBtn && sandboxSection) {
+  finishScreenBtn.addEventListener('click', () => {
+    sandboxSection.style.display = 'none';
+    sandboxContainer.innerHTML = '';
+    showToast('Tela dinâmica finalizada e desalocada da memória.');
+  });
+}
 
-// 6. Chat interaction logic
 async function sendMessage() {
   const message = messageInput.value.trim();
   if (!message) {
@@ -745,15 +646,16 @@ async function sendMessage() {
 
   const agent = getSelectedAgent();
   statusEl.textContent = 'Enviando...';
-  chatStatusText.textContent = 'Pensando...';
+  if (chatStatusText) chatStatusText.textContent = 'Pensando...';
   sendBtn.disabled = true;
 
   try {
+    appendMessage('Você', message, 'user');
+    messageInput.value = '';
+
     const response = await fetch(getApiUrl('/api/chat'), {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ agent, message, email: adminEmail || sessionStorage.getItem('alexUserEmail') })
     });
 
@@ -762,10 +664,9 @@ async function sendMessage() {
     }
 
     const data = await response.json();
-    appendMessage('Você', message, 'user');
     appendMessage(data.agent.toUpperCase(), data.response, 'assistant');
     
-    // Check if the response contains screen parameterization JSON
+    // Check for screen JSON parameterization
     const jsonMatch = data.response.match(/```json\s*(\{[\s\S]*?\})\s*```/);
     if (jsonMatch) {
       try {
@@ -774,38 +675,976 @@ async function sendMessage() {
           triggerAlexPipeline(config);
         }
       } catch (jsonErr) {
-        console.warn("JSON encontrado mas não pôde ser analisado:", jsonErr);
+        console.warn("JSON screen parsing error:", jsonErr);
       }
     }
 
-    messageInput.value = '';
     messageInput.focus();
     statusEl.textContent = '';
-    chatStatusText.textContent = 'Pronto';
+    if (chatStatusText) chatStatusText.textContent = 'Pronto';
   } catch (error) {
     statusEl.textContent = `Erro: ${error.message}`;
-    chatStatusText.textContent = 'Erro';
+    if (chatStatusText) chatStatusText.textContent = 'Erro';
     console.error(error);
   } finally {
     sendBtn.disabled = false;
   }
 }
 
-sendBtn.addEventListener('click', sendMessage);
-messageInput.addEventListener('keydown', (event) => {
-  if (event.key === 'Enter' && !event.shiftKey) {
-    event.preventDefault();
-    sendMessage();
+if (sendBtn) sendBtn.addEventListener('click', sendMessage);
+if (messageInput) {
+  messageInput.addEventListener('keydown', (event) => {
+    if (event.key === 'Enter' && !event.shiftKey) {
+      event.preventDefault();
+      sendMessage();
+    }
+  });
+}
+
+// ===================================================================
+//  RAG & DB INGESTION
+// ===================================================================
+const ragUploadForm = document.getElementById('ragUploadForm');
+const ragFile = document.getElementById('ragFile');
+const ragStatus = document.getElementById('ragStatus');
+const dbTitle = document.getElementById('dbTitle');
+const dbContent = document.getElementById('dbContent');
+const dbSaveBtn = document.getElementById('dbSaveBtn');
+const dbStatus = document.getElementById('dbStatus');
+
+if (ragUploadForm) {
+  ragUploadForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const file = ragFile.files[0];
+    if (!file) return;
+
+    ragStatus.textContent = 'Enviando documento...';
+    ragStatus.className = 'mini-status';
+
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('agent', getSelectedAgent());
+
+    try {
+      const uploadRes = await fetch(getApiUrl('/api/upload'), { method: 'POST', body: formData });
+      if (!uploadRes.ok) throw new Error('Erro no upload');
+      
+      ragStatus.textContent = 'Indexando no RAG...';
+      const ingestRes = await fetch(getApiUrl('/api/action/deploy-ingest'), { method: 'POST' });
+      if (!ingestRes.ok) throw new Error('Erro na indexação');
+      
+      ragStatus.textContent = 'Sucesso! Documento integrado ao RAG.';
+      ragStatus.className = 'mini-status';
+      showToast(`RAG atualizado com: ${file.name}`);
+      ragFile.value = '';
+    } catch (err) {
+      ragStatus.textContent = `Erro: ${err.message}`;
+      ragStatus.className = 'mini-status error';
+    }
+  });
+}
+
+if (dbSaveBtn) {
+  dbSaveBtn.addEventListener('click', async () => {
+    const title = dbTitle.value.trim();
+    const content = dbContent.value.trim();
+    if (!title || !content) {
+      dbStatus.textContent = 'Preencha título e conteúdo.';
+      dbStatus.className = 'mini-status error';
+      return;
+    }
+
+    dbStatus.textContent = 'Gravando no DB...';
+    try {
+      const res = await fetch(getApiUrl('/api/db'), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ title, content })
+      });
+      
+      if (!res.ok) throw new Error('Erro ao salvar no DB');
+      
+      dbStatus.textContent = 'Salvo na Fonte da Verdade (DB).';
+      showToast('Fonte da Verdade atualizada!');
+      dbTitle.value = '';
+      dbContent.value = '';
+    } catch (err) {
+      dbStatus.textContent = `Erro: ${err.message}`;
+      dbStatus.className = 'mini-status error';
+    }
+  });
+}
+
+// ===================================================================
+//  CUSTOM AGENT CREATION & STUDIO
+// ===================================================================
+const createAgentBtn = document.getElementById('createAgentBtn');
+const customAgentName = document.getElementById('customAgentName');
+const customAgentRole = document.getElementById('customAgentRole');
+const customAgentsList = document.getElementById('customAgentsList');
+const agentsTabList = document.getElementById('agentsTabList');
+const openCreateFromTabBtn = document.getElementById('openCreateFromTabBtn');
+
+const agentBuilderTab = document.getElementById('agentBuilderTab');
+const agentBuilderTabButton = document.querySelector('[data-target="agentBuilderTab"]');
+const closeAgentBuilderBtn = document.getElementById('closeAgentBuilderBtn');
+const builderAgentName = document.getElementById('builderAgentName');
+const builderAgentGoal = document.getElementById('builderAgentGoal');
+const builderRequirements = document.getElementById('builderRequirements');
+const buildAgentBtn = document.getElementById('buildAgentBtn');
+const builderStatus = document.getElementById('builderStatus');
+const builderChatHistory = document.getElementById('builderChatHistory');
+const builderChatInput = document.getElementById('builderChatInput');
+const builderChatSendBtn = document.getElementById('builderChatSendBtn');
+
+function showAgentBuilderTab() {
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.tab-content').forEach(c => { c.classList.remove('active'); c.style.display = 'none'; });
+  if (agentBuilderTabButton) {
+    agentBuilderTabButton.style.display = 'inline-flex';
+    agentBuilderTabButton.classList.add('active');
   }
-});
+  if (agentBuilderTab) {
+    agentBuilderTab.classList.add('active');
+    agentBuilderTab.style.display = 'flex';
+  }
+}
+
+if (createAgentBtn) {
+  createAgentBtn.addEventListener('click', () => {
+    const email = adminEmail || sessionStorage.getItem('alexUserEmail');
+    if (!email) { showToast('Autentique-se para construir um agente.'); return; }
+    
+    if (customAgentName && customAgentName.value.trim()) {
+      builderAgentName.value = customAgentName.value.trim();
+    }
+    if (customAgentRole && customAgentRole.value.trim()) {
+      builderAgentGoal.value = customAgentRole.value.trim();
+    }
+    
+    showAgentBuilderTab();
+    if (builderChatHistory && builderChatHistory.children.length === 0) {
+      addBuilderMessage('Alia', 'Olá! Para criar um agente perfeito no Ollama, me conte o que ele deve resolver, que dados ele precisa e quem irá utilizá-lo.');
+    }
+  });
+}
+
+if (openCreateFromTabBtn) {
+  openCreateFromTabBtn.addEventListener('click', () => {
+    showAgentBuilderTab();
+    if (builderChatHistory && builderChatHistory.children.length === 0) {
+      addBuilderMessage('Alia', 'Olá! Conte o objetivo do seu novo agente e vamos estruturar a especificação juntos.');
+    }
+  });
+}
+
+function addBuilderMessage(author, text) {
+  if (!builderChatHistory) return;
+  const message = document.createElement('div');
+  message.className = `builder-message ${author === 'Você' ? 'user' : 'assistant'}`;
+  message.innerHTML = `<strong>${escapeHtml(author)}</strong><div>${escapeHtml(text).replace(/\n/g, '<br>')}</div>`;
+  builderChatHistory.appendChild(message);
+  builderChatHistory.scrollTop = builderChatHistory.scrollHeight;
+}
+
+if (builderChatSendBtn && builderChatInput) {
+  builderChatSendBtn.addEventListener('click', async () => {
+    const message = builderChatInput.value.trim();
+    if (!message) return;
+    addBuilderMessage('Você', message);
+    builderChatInput.value = '';
+    
+    try {
+      const response = await fetch(getApiUrl('/api/chat'), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          agent: 'alia',
+          email: adminEmail || sessionStorage.getItem('alexUserEmail'),
+          message: `Estamos construindo um agente. Objetivo: ${builderAgentGoal.value}. Requisitos anotados: ${builderRequirements.value}. Mensagem do cliente: ${message}. Faça perguntas de refinamento e estruture requisitos.`
+        })
+      });
+      const data = await response.json();
+      addBuilderMessage('Alia', data.response || 'Não foi possível responder.');
+      builderRequirements.value = `${builderRequirements.value}${builderRequirements.value ? '\n\n' : ''}Requisito: ${message}`;
+    } catch (err) {
+      addBuilderMessage('Alia', 'Erro ao conectar: ' + err.message);
+    }
+  });
+
+  builderChatInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      builderChatSendBtn.click();
+    }
+  });
+}
+
+if (buildAgentBtn) {
+  buildAgentBtn.addEventListener('click', async () => {
+    const email = adminEmail || sessionStorage.getItem('alexUserEmail');
+    if (!builderAgentName.value.trim() || !builderAgentGoal.value.trim()) {
+      builderStatus.textContent = 'Preencha ao menos o nome e o objetivo do agente.';
+      builderStatus.className = 'mini-status error';
+      return;
+    }
+
+    builderStatus.textContent = 'Alex está sintetizando e registrando o agente...';
+    try {
+      const response = await fetch(getApiUrl('/api/agents/custom'), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: builderAgentName.value.trim(),
+          role: `${builderAgentGoal.value.trim()}\n${builderRequirements.value.trim()}`,
+          email
+        })
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.message || 'Erro ao construir agente');
+      
+      builderStatus.textContent = 'Agente construído com sucesso!';
+      showToast(`Agente ${builderAgentName.value} ativado!`);
+      loadCustomAgents();
+      
+      setTimeout(() => {
+        const agentsTabBtn = document.querySelector('[data-target="agentsTab"]');
+        if (agentsTabBtn) agentsTabBtn.click();
+      }, 700);
+    } catch (err) {
+      builderStatus.textContent = err.message;
+      builderStatus.className = 'mini-status error';
+    }
+  });
+}
+
+if (closeAgentBuilderBtn) {
+  closeAgentBuilderBtn.addEventListener('click', () => {
+    const chatTabBtn = document.querySelector('[data-target="chatTab"]');
+    if (chatTabBtn) chatTabBtn.click();
+  });
+}
+
+async function loadCustomAgents() {
+  try {
+    const email = adminEmail || sessionStorage.getItem('alexUserEmail');
+    if (!email) return;
+    const res = await fetch(getApiUrl(`/api/agents/custom?email=${encodeURIComponent(email)}`));
+    if (!res.ok) return;
+    const agents = await res.json();
+    renderCustomAgents(agents);
+  } catch (err) {
+    console.error('Erro ao carregar agentes customizados', err);
+  }
+}
+
+function renderCustomAgents(agents) {
+  if (customAgentsList) customAgentsList.innerHTML = '';
+  if (agentsTabList) agentsTabList.innerHTML = '';
+
+  if (!agents || agents.length === 0) {
+    if (customAgentsList) customAgentsList.innerHTML = '<span style="font-size: 0.75rem; color: var(--text-muted);">Nenhum agente instanciado.</span>';
+    if (agentsTabList) agentsTabList.innerHTML = '<div style="color: var(--text-muted); padding: 20px; text-align: center;">Nenhum agente construído ainda. Use a aba Construir Agente ou peça à Alia!</div>';
+    return;
+  }
+
+  agents.forEach(agent => {
+    const item = document.createElement('div');
+    item.className = 'custom-agent-item';
+    item.innerHTML = `
+      <div class="custom-agent-info">
+        <span class="custom-agent-name">🤖 ${escapeHtml(agent.name)}</span>
+        <span class="custom-agent-role">${escapeHtml(agent.role)}</span>
+      </div>
+      <div>
+        <button class="btn-open-chat" data-name="${escapeHtml(agent.name)}" data-role="${escapeHtml(agent.role)}">💬 Chat</button>
+        <button class="btn-remove-agent" data-id="${agent.id}">Excluir</button>
+      </div>
+    `;
+
+    item.querySelector('.btn-open-chat').addEventListener('click', () => openAgentModal(agent.name, agent.role));
+    item.querySelector('.btn-remove-agent').addEventListener('click', () => deleteCustomAgent(agent.id));
+
+    if (customAgentsList) customAgentsList.appendChild(item);
+    if (agentsTabList) {
+      const tabClone = item.cloneNode(true);
+      tabClone.querySelector('.btn-open-chat').addEventListener('click', () => openAgentModal(agent.name, agent.role));
+      tabClone.querySelector('.btn-remove-agent').addEventListener('click', () => deleteCustomAgent(agent.id));
+      agentsTabList.appendChild(tabClone);
+    }
+  });
+}
+
+async function deleteCustomAgent(id) {
+  if (!window.confirm('Deseja realmente remover este agente?')) return;
+  try {
+    const email = adminEmail || sessionStorage.getItem('alexUserEmail');
+    const res = await fetch(getApiUrl(`/api/agents/custom/${id}`), {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email })
+    });
+    if (res.ok) {
+      showToast('Agente removido com sucesso!');
+      loadCustomAgents();
+    } else {
+      const err = await res.json();
+      showToast(`Erro: ${err.message}`);
+    }
+  } catch (err) {
+    showToast(`Erro: ${err.message}`);
+  }
+}
 
 // ===================================================================
-//  ADMIN ZONE — Google Sign-In + Shutdown da Plataforma
 // ===================================================================
+//  PUBLIC PAGES CMS & MODO DEUS STUDIO
+// ===================================================================
+const publicPageForm = document.getElementById('publicPageForm');
+const pageSlug = document.getElementById('pageSlug');
+const pageTitle = document.getElementById('pageTitle');
+const pageContent = document.getElementById('pageContent');
+const pageStatus = document.getElementById('pageStatus');
+const publicPagesList = document.getElementById('publicPagesList');
+const publishPageBtn = document.getElementById('publishPageBtn');
+const cancelPageEditBtn = document.getElementById('cancelPageEditBtn');
+const btnOpenNewPageEditor = document.getElementById('btnOpenNewPageEditor');
 
+// Studio Elements
+const pageEditorTab = document.getElementById('pageEditorTab');
+const pageEditorForm = document.getElementById('pageEditorForm');
+const editorPageSlug = document.getElementById('editorPageSlug');
+const editorPageTitle = document.getElementById('editorPageTitle');
+const editorPageContent = document.getElementById('editorPageContent');
+const editorStatus = document.getElementById('editorStatus');
+const closePageEditorBtn = document.getElementById('closePageEditorBtn');
+const previewPageBtn = document.getElementById('previewPageBtn');
+const clearEditorBtn = document.getElementById('clearEditorBtn');
+const editorPreview = document.getElementById('editorPreview');
+const editorPreviewUrlBadge = document.getElementById('editorPreviewUrlBadge');
+const btnPreviewDesktop = document.getElementById('btnPreviewDesktop');
+const btnPreviewMobile = document.getElementById('btnPreviewMobile');
+const btnCopyPublicUrl = document.getElementById('btnCopyPublicUrl');
+const btnOpenPublicTab = document.getElementById('btnOpenPublicTab');
+
+// Media & Toolbar Elements
+const mediaUploadInput = document.getElementById('mediaUploadInput');
+const btnAddYoutube = document.getElementById('btnAddYoutube');
+const btnAddWhatsapp = document.getElementById('btnAddWhatsapp');
+const btnAddButton = document.getElementById('btnAddButton');
+const mediaGalleryContainer = document.getElementById('mediaGalleryContainer');
+const mediaGalleryList = document.getElementById('mediaGalleryList');
+const mediaUploadProgress = document.getElementById('mediaUploadProgress');
+
+// Mode Toggles & Panels
+const btnModeForm = document.getElementById('btnModeForm');
+const btnModeStudy = document.getElementById('btnModeStudy');
+const btnModeCopilot = document.getElementById('btnModeCopilot');
+const editorStudyPanel = document.getElementById('editorStudyPanel');
+const studyAgentSelect = document.getElementById('studyAgentSelect');
+const studySegmentInput = document.getElementById('studySegmentInput');
+const studyAudienceInput = document.getElementById('studyAudienceInput');
+const studyOfferInput = document.getElementById('studyOfferInput');
+const btnRunMarketStudy = document.getElementById('btnRunMarketStudy');
+const studyStatus = document.getElementById('studyStatus');
+
+// Co-Pilot Elements
+const editorCopilotPanel = document.getElementById('editorCopilotPanel');
+const editorAgentSelect = document.getElementById('editorAgentSelect');
+const editorChatHistory = document.getElementById('editorChatHistory');
+const editorChatInput = document.getElementById('editorChatInput');
+const editorChatSendBtn = document.getElementById('editorChatSendBtn');
+const applyAiSuggestionWrapper = document.getElementById('applyAiSuggestionWrapper');
+const applyAiSuggestionBtn = document.getElementById('applyAiSuggestionBtn');
+
+let currentCachedPages = [];
+let lastAiGeneratedPageContent = '';
+let editingStudioSlug = null;
+let editingPageSlug = null;
+
+// Markdown parser helper for rich live preview
+function parseMarkdownToHtml(md) {
+  if (!md) return '<p style="color: var(--text-muted); font-style: italic;">Digite o conteúdo da página ou peça aos agentes para realizar um estudo de mercado...</p>';
+  let html = escapeHtml(md);
+
+  // Images: ![alt](url)
+  html = html.replace(/!\[(.*?)\]\((.*?)\)/gim, '<div class="page-media-box"><img src="$2" alt="$1" class="page-img" loading="lazy" /></div>');
+
+  // Videos: [video:legenda](url) or [video](url)
+  html = html.replace(/\[video(?::(.*?))?\]\((.*?)\)/gim, '<div class="page-media-box"><video controls class="page-video" playsinline preload="metadata"><source src="$2" />Seu navegador não suporta reprodução de vídeo.</video></div>');
+
+  // YouTube Embed: [youtube](url)
+  html = html.replace(/\[youtube\]\(https?:\/\/(?:www\.)?(?:youtube\.com\/watch\?v=|youtu\.be\/)([a-zA-Z0-9_-]+).*?\)/gim, '<div class="page-media-box video-responsive"><iframe src="https://www.youtube.com/embed/$1" allowfullscreen></iframe></div>');
+
+  // WhatsApp Direct Button: [whatsapp:5511999999999?text=ola](Falar no WhatsApp)
+  html = html.replace(/\[whatsapp:([^\]]+)\]\((.*?)\)/gim, '<div style="margin: 16px 0;"><a href="https://wa.me/$1" target="_blank" rel="noopener" class="btn-whatsapp">💬 $2 ↗</a></div>');
+
+  // Button CTA: [button:TEXTO](URL)
+  html = html.replace(/\[button:(.*?)\]\((.*?)\)/gim, '<div style="margin: 16px 0;"><a href="$2" target="_blank" rel="noopener" class="btn-cta">$1 ↗</a></div>');
+
+  // Generic Markdown links: [TEXTO](URL)
+  html = html.replace(/\[(.*?)\]\((.*?)\)/gim, '<a href="$2" target="_blank" rel="noopener" style="color: var(--color-alex); font-weight: 600;">$1</a>');
+
+  // Headers
+  html = html.replace(/^### (.*$)/gim, '<h3>$1</h3>');
+  html = html.replace(/^## (.*$)/gim, '<h2>$1</h2>');
+  html = html.replace(/^# (.*$)/gim, '<h1>$1</h1>');
+
+  // Bold & Italic
+  html = html.replace(/\*\*(.*?)\*\*/gim, '<strong>$1</strong>');
+  html = html.replace(/\*(.*?)\*/gim, '<em>$1</em>');
+
+  // Blockquotes
+  html = html.replace(/^> (.*$)/gim, '<blockquote>$1</blockquote>');
+
+  // Horizontal Rules
+  html = html.replace(/^---+$/gim, '<hr style="border:none;border-top:1px solid rgba(255,255,255,0.1);margin:20px 0;">');
+
+  // Unordered list
+  html = html.replace(/^\s*-\s+(.*$)/gim, '<li>$1</li>');
+  html = html.replace(/(<li>.*<\/li>)/gim, '<ul>$1</ul>');
+  html = html.replace(/<\/ul>\s*<ul>/gim, '');
+
+  // Paragraphs / linebreaks
+  html = html.split('\n\n').map(paragraph => {
+    const trimmed = paragraph.trim();
+    if (!trimmed) return '';
+    if (trimmed.startsWith('<h') || trimmed.startsWith('<ul') || trimmed.startsWith('<div') || trimmed.startsWith('<blockquote') || trimmed.startsWith('<hr')) {
+      return trimmed;
+    }
+    return `<p>${trimmed.replace(/\n/g, '<br>')}</p>`;
+  }).join('');
+
+  return html;
+}
+
+function updateStudioPreview() {
+  if (!editorPreview) return;
+  const slug = (editorPageSlug && editorPageSlug.value.trim()) || 'thehouse';
+  const title = (editorPageTitle && editorPageTitle.value.trim()) || 'THE HOUSE';
+  const content = (editorPageContent && editorPageContent.value) || '';
+
+  const fullUrl = new URL(`/public/${encodeURIComponent(slug)}`, window.location.origin).href;
+  if (editorPreviewUrlBadge) editorPreviewUrlBadge.textContent = `/public/${slug}`;
+  if (btnOpenPublicTab) btnOpenPublicTab.href = fullUrl;
+
+  editorPreview.innerHTML = `
+    <h1>${escapeHtml(title)}</h1>
+    <div class="preview-body">${parseMarkdownToHtml(content)}</div>
+  `;
+}
+
+// Live typing on Editor
+if (editorPageContent) editorPageContent.addEventListener('input', updateStudioPreview);
+if (editorPageTitle) editorPageTitle.addEventListener('input', updateStudioPreview);
+if (editorPageSlug) editorPageSlug.addEventListener('input', updateStudioPreview);
+
+// Insert Text Helper in Editor Textarea
+function insertTextAtCursor(textarea, text) {
+  if (!textarea) return;
+  const start = textarea.selectionStart || 0;
+  const end = textarea.selectionEnd || 0;
+  const val = textarea.value;
+  textarea.value = val.substring(0, start) + text + val.substring(end);
+  textarea.selectionStart = textarea.selectionEnd = start + text.length;
+  textarea.focus();
+  updateStudioPreview();
+}
+
+// Device View Toggles
+if (btnPreviewDesktop && btnPreviewMobile && editorPreview) {
+  btnPreviewDesktop.addEventListener('click', () => {
+    btnPreviewDesktop.classList.add('active');
+    btnPreviewMobile.classList.remove('active');
+    editorPreview.classList.remove('mobile-view');
+    editorPreview.classList.add('desktop-view');
+  });
+
+  btnPreviewMobile.addEventListener('click', () => {
+    btnPreviewMobile.classList.add('active');
+    btnPreviewDesktop.classList.remove('active');
+    editorPreview.classList.remove('desktop-view');
+    editorPreview.classList.add('mobile-view');
+  });
+}
+
+// Copy Public Link
+if (btnCopyPublicUrl) {
+  btnCopyPublicUrl.addEventListener('click', () => {
+    const slug = (editorPageSlug && editorPageSlug.value.trim()) || 'thehouse';
+    const fullUrl = new URL(`/public/${encodeURIComponent(slug)}`, window.location.origin).href;
+    navigator.clipboard.writeText(fullUrl).then(() => {
+      showToast('Link público copiado para a área de transferência!');
+    }).catch(() => {
+      showToast('URL: ' + fullUrl);
+    });
+  });
+}
+
+// Toggle between Form, Study, and Co-Pilot tabs
+function setEditorMode(mode) {
+  [btnModeForm, btnModeStudy, btnModeCopilot].forEach(b => b && b.classList.remove('active'));
+  if (pageEditorForm) pageEditorForm.style.display = 'none';
+  if (editorStudyPanel) editorStudyPanel.style.display = 'none';
+  if (editorCopilotPanel) editorCopilotPanel.style.display = 'none';
+
+  if (mode === 'form') {
+    if (btnModeForm) btnModeForm.classList.add('active');
+    if (pageEditorForm) pageEditorForm.style.display = 'flex';
+  } else if (mode === 'study') {
+    if (btnModeStudy) btnModeStudy.classList.add('active');
+    if (editorStudyPanel) editorStudyPanel.style.display = 'flex';
+    populateCopilotAgents();
+  } else if (mode === 'copilot') {
+    if (btnModeCopilot) btnModeCopilot.classList.add('active');
+    if (editorCopilotPanel) editorCopilotPanel.style.display = 'flex';
+    populateCopilotAgents();
+  }
+}
+
+if (btnModeForm) btnModeForm.addEventListener('click', () => setEditorMode('form'));
+if (btnModeStudy) btnModeStudy.addEventListener('click', () => setEditorMode('study'));
+if (btnModeCopilot) btnModeCopilot.addEventListener('click', () => setEditorMode('copilot'));
+
+// Open New Page Editor Button
+if (btnOpenNewPageEditor) {
+  btnOpenNewPageEditor.addEventListener('click', () => {
+    openPageEditor('');
+  });
+}
+
+// ─── UPLOAD DE FOTOS E VÍDEOS ──────────────────────────────────────────
+async function fetchMediaGallery() {
+  try {
+    const res = await fetch(getApiUrl('/api/pages/media'));
+    if (!res.ok) return;
+    const mediaList = await res.json();
+    if (Array.isArray(mediaList) && mediaList.length > 0 && mediaGalleryList && mediaGalleryContainer) {
+      mediaGalleryContainer.style.display = 'block';
+      mediaGalleryList.innerHTML = mediaList.map(item => {
+        const isVideo = item.type === 'video';
+        return `
+          <div class="media-thumb-item" title="${escapeHtml(item.fileName)} (Clique para inserir)" data-url="${escapeHtml(item.url)}" data-type="${item.type}">
+            ${isVideo ? `<video src="${escapeHtml(item.url)}#t=0.5" preload="metadata"></video>` : `<img src="${escapeHtml(item.url)}" alt="${escapeHtml(item.fileName)}" />`}
+            <span class="media-thumb-badge">${isVideo ? '🎥 VÍDEO' : '📷 FOTO'}</span>
+          </div>
+        `;
+      }).join('');
+
+      mediaGalleryList.querySelectorAll('.media-thumb-item').forEach(thumb => {
+        thumb.addEventListener('click', () => {
+          const url = thumb.dataset.url;
+          const type = thumb.dataset.type;
+          if (type === 'video') {
+            insertTextAtCursor(editorPageContent, `\n\n[video:Apresentação do Produto](${url})\n\n`);
+          } else {
+            insertTextAtCursor(editorPageContent, `\n\n![Foto em Destaque](${url})\n\n`);
+          }
+          showToast('Mídia inserida no editor!');
+        });
+      });
+    }
+  } catch (err) {
+    console.error('Erro ao carregar mídias:', err);
+  }
+}
+
+if (mediaUploadInput) {
+  mediaUploadInput.addEventListener('change', async (e) => {
+    const files = Array.from(e.target.files || []);
+    if (files.length === 0) return;
+
+    if (mediaUploadProgress) mediaUploadProgress.textContent = `Enviando ${files.length} arquivo(s)...`;
+    if (mediaGalleryContainer) mediaGalleryContainer.style.display = 'block';
+
+    for (const file of files) {
+      const formData = new FormData();
+      formData.append('file', file);
+
+      try {
+        const res = await fetch(getApiUrl('/api/pages/media'), {
+          method: 'POST',
+          body: formData
+        });
+
+        if (res.ok) {
+          const data = await res.json();
+          if (data.type === 'video') {
+            insertTextAtCursor(editorPageContent, `\n\n[video:${data.originalName || 'Vídeo'}](${data.url})\n\n`);
+          } else {
+            insertTextAtCursor(editorPageContent, `\n\n![${data.originalName || 'Foto'}](${data.url})\n\n`);
+          }
+          showToast(`Arquivo "${file.name}" enviado com sucesso!`);
+        } else {
+          const errData = await res.json();
+          showToast(`Erro no upload de ${file.name}: ${errData.message || 'Falha'}`, 4000);
+        }
+      } catch (err) {
+        showToast(`Erro ao enviar ${file.name}: ${err.message}`, 4000);
+      }
+    }
+
+    if (mediaUploadProgress) mediaUploadProgress.textContent = 'Upload concluído!';
+    setTimeout(() => { if (mediaUploadProgress) mediaUploadProgress.textContent = ''; }, 3000);
+    mediaUploadInput.value = '';
+    fetchMediaGallery();
+  });
+}
+
+// Quick Toolbar Buttons
+if (btnAddYoutube) {
+  btnAddYoutube.addEventListener('click', () => {
+    const url = prompt('Informe a URL do vídeo do YouTube (ex: https://www.youtube.com/watch?v=VIDEO_ID):');
+    if (url) {
+      insertTextAtCursor(editorPageContent, `\n\n[youtube](${url.trim()})\n\n`);
+    }
+  });
+}
+
+if (btnAddWhatsapp) {
+  btnAddWhatsapp.addEventListener('click', () => {
+    const phone = prompt('Informe o número do WhatsApp com DDI e DDD (ex: 5511999999999):', '5511999999999');
+    if (phone) {
+      const cleanPhone = phone.replace(/\D/g, '');
+      const text = prompt('Texto do botão:', 'Falar no WhatsApp');
+      insertTextAtCursor(editorPageContent, `\n\n[whatsapp:${cleanPhone}?text=Ol%C3%A1%2C%20gostaria%20de%20mais%20informa%C3%A7%C3%B5es](${text || 'Falar no WhatsApp'})\n\n`);
+    }
+  });
+}
+
+if (btnAddButton) {
+  btnAddButton.addEventListener('click', () => {
+    const text = prompt('Texto do Botão de Ação:', 'Comprar Agora / Solicitar Proposta');
+    const link = prompt('Link do Botão (URL ou #ancora):', '#comprar');
+    if (text && link) {
+      insertTextAtCursor(editorPageContent, `\n\n[button:${text}](${link})\n\n`);
+    }
+  });
+}
+
+// ─── 10 TEMPLATES PRÉ-CONSTRUÍDOS POR SEGMENTO DE NEGÓCIO ─────────────
+const PAGE_TEMPLATES = {
+  sales: {
+    slug: 'catalogo-produtos',
+    title: '🛍️ Coleção Exclusiva & Produtos em Destaque',
+    content: `# Coleção Exclusiva — Alta Performance & Estilo
+
+Descubra nossa linha selecionada de produtos com acabamento de alto padrão e tecnologia de ponta.
+
+> **Frete Grátis** para todo o Brasil em compras acima de R$ 199 com envio imediato e rastreamento em tempo real.
+
+## ✨ Destaques da Coleção
+- **Qualidade Superior:** Materiais nobres com garantia estendida de 12 meses.
+- **Design Contemporâneo:** Desenvolvido por designers premiados internacionalmente.
+- **Entrega Segura:** Embalagem premium inviolável e suporte pós-venda dedicado.
+
+---
+
+## 🏷️ Ofertas em Destaque
+
+### Combo Especial Pro — R$ 249,00
+- 1x Item Principal Edição Limitada
+- 1x Acessório Exclusivo
+- Acesso à Comunidade VIP de Clientes
+
+[button:COMPRAR NO PIX OU CARTÃO EM ATÉ 12X](#comprar)
+
+---
+
+### 💬 Atendimento Comercial no WhatsApp
+Tire suas dúvidas diretamente com nossos consultores de vendas:
+[whatsapp:5511999999999?text=Ol%C3%A1%2C%20quero%20conhecer%20os%20produtos%20em%20destaque](Falar no WhatsApp com Atendente)`
+  },
+
+  house: {
+    slug: 'thehouse',
+    title: 'THE HOUSE — Mansão Contemporânea de Alto Luxo',
+    content: `# THE HOUSE — O Ápice da Sofisticação & Automação
+
+Uma experiência residencial incomparável no endereço mais exclusivo da cidade, com arquitetura contemporânea e automação total com Inteligência Artificial.
+
+> **Área Total:** 1.200m² | **4 Suítes Master** | **6 Vagas Cobertas** | **Piscina Borda Infinita Aquecida**
+
+## 💎 Diferenciais Exclusivos
+- **Living com Pé Direito Duplo de 6 metros** e iluminação natural biofílica.
+- **Espaço Gourmet Integrado** com adega climatizada para 500 garrafas.
+- **Sistema de Automação AlEx** integrado por voz e sensores térmicos inteligentes.
+- **Segurança Blindada Nível III-A** com monitoramento perimetral por IA 24h.
+
+---
+
+## 📅 Agendamento de Visita Privativa
+Os atendimentos são realizados com exclusividade e discrição para clientes cadastrados.
+
+[whatsapp:5511999999999?text=Ol%C3%A1%2C%20gostaria%20de%20agendar%20uma%20visita%20ao%20THE%20HOUSE](AGENDAR VISITA COM CORRETOR EXCLUSIVO)`
+  },
+
+  gastro: {
+    slug: 'menu-experiencia',
+    title: '🍽️ Menu Degustação & Experiência Gastronômica',
+    content: `# Bistrô & Cozinha Autoral — Sabor & Tradição
+
+Uma jornada sensorial inspirada na culinária contemporânea com ingredientes orgânicos e sustentáveis.
+
+> **Horário de Funcionamento:** Terça a Domingo das 19h às 23h30 | **Reservas Antecipadas**
+
+## 🍷 Experiência do Chef
+- **Entrada:** Tartar de salmão com emulsão de maracujá e crocante de tapioca.
+- **Principal:** Risoto de cogumelos selvagens com medalhão de filé ao molho trufado.
+- **Sobremesa:** Esfera de chocolate belga com calda quente de frutas vermelhas.
+
+---
+
+## 📲 Reservas de Mesas & Eventos Privados
+Garanta sua mesa ou reserve o salão exclusivo para comemorações especiais:
+
+[whatsapp:5511999999999?text=Ol%C3%A1%2C%20gostaria%20de%20fazer%20uma%20reserva%20para%20hoje](Fazer Reserva pelo WhatsApp)
+[button:VER CARDÁPIO COMPLETO EM PDF](#cardapio)`
+  },
+
+  health: {
+    slug: 'clinica-especializada',
+    title: '🩺 Clínica de Saúde Integrada & Estética Avançada',
+    content: `# Cuidando da Sua Saúde & Bem-Estar com Excelência
+
+Tratamentos personalizados com corpo clínico multidisciplinar e tecnologias médicas de última geração.
+
+## 🌟 Nossas Especialidades
+- **Medicina Preventiva & Longevidade:** Check-ups completos e acompanhamento contínuo.
+- **Dermatologia & Estética Avançada:** Rejuvenescimento, laser e protocolos faciais.
+- **Nutrição Clínica & Esportiva:** Planos alimentares com bioimpedância detalhada.
+
+---
+
+## 📅 Agende sua Avaliação
+Conte com um ambiente acolhedor, estacionamento privativo e pontualidade no atendimento:
+
+[whatsapp:5511999999999?text=Ol%C3%A1%2C%20quero%20agendar%20uma%20consulta%20m%C3%A9dica](Agendar Consulta no WhatsApp)`
+  },
+
+  law: {
+    slug: 'advocacia-estrategica',
+    title: '⚖️ Advocacia Empresarial & Assessoria Jurídica',
+    content: `# Soluções Jurídicas Estratégicas para o seu Negócio
+
+Proteção patrimonial, compliance e assessoria em negociações complexas com ética e excelência técnica.
+
+## 🏛️ Áreas de Atuação
+- **Direito Societário & M&A:** Fusões, aquisições e reestruturação corporativa.
+- **Planejamento Tributário:** Redução legal de carga tributária e recuperação de créditos.
+- **Proteção Patrimonial & Sucessória:** Blindagem jurídica de ativos familiares e empresariais.
+
+---
+
+## 🤝 Agende uma Análise Preliminar
+Fale com nossos advogados especialistas para uma consulta confidencial:
+
+[whatsapp:5511999999999?text=Ol%C3%A1%2C%20gostaria%20de%20uma%20consulta%20jur%C3%ADdica](Falar com Advogado Especialista)`
+  },
+
+  services: {
+    slug: 'solucoes-saas-ia',
+    title: '🚀 Plataforma de IA & Automação Inteligente',
+    content: `# Escale sua Empresa com Agentes Autônomos de IA
+
+Elimine tarefas manuais, acelere seu atendimento e multiplique suas conversões em tempo recorde.
+
+## ⚡ Por que Escolher Nossa Solução?
+- **Atendimento 24/7 sem Fila:** Respostas instantâneas e humanizadas no WhatsApp e Web.
+- **Integração Rápida:** Conecte ao seu CRM, ERP e banco de dados em minutos.
+- **ROI Comprovado:** Clientes registram aumento de até 4x na produtividade de vendas.
+
+---
+
+## 💳 Planos & Investimento
+
+### Plano Growth — R$ 297,00 / mês
+- Até 5 Agentes de IA simultâneos
+- Integração completa de WhatsApp
+- Relatórios semanais de performance
+
+[button:INICIAR TESTE GRATUITO DE 7 DIAS](#teste)
+[whatsapp:5511999999999?text=Ol%C3%A1%2C%20quero%20ver%20uma%20demonstra%C3%A7%C3%A3o%20da%20plataforma](Agendar Demonstração ao Vivo)`
+  },
+
+  fitness: {
+    slug: 'treinamento-personalizado',
+    title: '🏋️ Centro de Treinamento & Alta Performance',
+    content: `# Supere seus Limites com Acompanhamento de Elite
+
+Treinos individualizados, estrutura completa e suporte de nutricionistas para atingir o seu melhor resultado.
+
+## 🔥 O que Você Encontra Aqui
+- **Equipamentos de Última Geração** com biomecânica avançada.
+- **Acompanhamento Personalizado** para emagrecimento, hipertrofia e condicionamento.
+- **Bioimpedância Periódica** e ajuste quinzenal de carga e volume.
+
+[whatsapp:5511999999999?text=Ol%C3%A1%2C%20quero%20agendar%20uma%20aula%20experimental%20gratuita](AGENDAR AULA EXPERIMENTAL GRÁTIS)`
+  },
+
+  education: {
+    slug: 'mentoria-alta-escala',
+    title: '🎓 Mentoria Executiva & Formação Prática',
+    content: `# Domine as Ferramentas do Futuro e Acelere sua Carreira
+
+Metodologia prática direto ao ponto com estudos de caso reais e mentoria direta com especialistas do mercado.
+
+## 📚 Conteúdo Programático
+- **Módulo 1:** Fundamentos e Estruturação Estratégica.
+- **Módulo 2:** Implementação de Agentes e Automações na Prática.
+- **Módulo 3:** Escala de Negócios e Vendas de Alto Ticket.
+
+> **Vagas Limitadas:** Turmas reduzidas para garantir acompanhamento próximo de cada aluno.
+
+[button:GARANTIR MINHA VAGA COM DESCONTO](#vaga)
+[whatsapp:5511999999999?text=Ol%C3%A1%2C%20gostaria%20de%20saber%20mais%20sobre%20a%20mentoria](Tirar Dúvidas com o Time Pedagógico)`
+  },
+
+  auto: {
+    slug: 'veiculos-premium',
+    title: '🚗 Concessionária Premium — Carros & Blindados',
+    content: `# Veículos Selecionados com Garantia & Procedência
+
+Os modelos mais desejados do mercado com laudo cautelar 100% aprovado e condições especiais de financiamento.
+
+## 🏎️ Diferenciais de Compra
+- **Garantia Total de 1 Ano** de motor e câmbio.
+- **Avaliação Justa do seu Usado** na troca com pagamento imediato.
+- **Entrega em Todo o Brasil** com transporte segurado porta a porta.
+
+[whatsapp:5511999999999?text=Ol%C3%A1%2C%20gostaria%20de%20receber%20o%20cat%C3%A1logo%20de%20ve%C3%ADculos](SOLICITAR CATÁLOGO DE VEÍCULOS)`
+  },
+
+  report: {
+    slug: 'relatorio-executivo-ia',
+    title: '📊 Relatório de Entrega & Auditoria de IA',
+    content: `# Relatório Executivo de Resultados & Entregáveis
+
+Documento oficial gerado pelos agentes autônomos da AlEx Platform v2.
+
+## 📈 Métricas de Desempenho
+- **Taxa de Conversão Alcançada:** +42.6%
+- **Tempo Médio de Atendimento:** 1.4s
+- **Índice de Resolução no 1º Contato:** 94.8%
+
+## 📋 Conclusões & Recomendações
+Todos os testes de carga e segurança foram validados com 100% de conformidade técnica.
+
+[button:BAIXAR VERSÃO COMPLETA EM PDF](#pdf)`
+  }
+};
+
+// Preview button in Studio
+if (previewPageBtn) {
+  previewPageBtn.addEventListener('click', () => {
+    updateStudioPreview();
+    showToast('Prévia atualizada!');
+  });
+}
+
+// Form on the Publish Tab
+if (publicPageForm) {
+  publicPageForm.addEventListener('submit', async (event) => {
+    event.preventDefault();
+    const email = adminEmail || sessionStorage.getItem('alexUserEmail');
+    const isEditing = Boolean(editingPageSlug);
+    pageStatus.textContent = isEditing ? 'Salvando edição...' : 'Publicando página...';
+    pageStatus.className = 'mini-status';
+
+    try {
+      const endpoint = isEditing 
+        ? `/api/pages/${encodeURIComponent(editingPageSlug)}?email=${encodeURIComponent(email)}` 
+        : `/api/pages?email=${encodeURIComponent(email)}`;
+
+      const response = await fetch(getApiUrl(endpoint), {
+        method: isEditing ? 'PUT' : 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ slug: pageSlug.value.trim().toLowerCase(), title: pageTitle.value.trim(), content: pageContent.value.trim() })
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.message || 'Não foi possível publicar.');
+      
+      const publicUrl = new URL(data.publicUrl, window.location.origin).href;
+      pageStatus.innerHTML = `Página salva: <a href="${publicUrl}" target="_blank" rel="noopener" style="color: var(--color-alex); font-weight: 700;">${publicUrl}</a>`;
+      publicPageForm.reset();
+      editingPageSlug = null;
+      loadPublicPages();
+      showToast('Página pública atualizada!');
+    } catch (error) {
+      pageStatus.textContent = error.message;
+      pageStatus.className = 'mini-status error';
+    }
+  });
+}
+
+// Load Public Pages with Edit button
+async function loadPublicPages() {
+  const email = adminEmail || sessionStorage.getItem('alexUserEmail');
+  if (!email || !publicPagesList) return;
+  try {
+    const response = await fetch(getApiUrl(`/api/pages?email=${encodeURIComponent(email)}`));
+    if (!response.ok) return;
+    const pages = await response.json();
+    currentCachedPages = pages || [];
+    
+    publicPagesList.innerHTML = pages.length ? pages.map(page => {
+      const url = new URL(`/public/${encodeURIComponent(page.slug)}`, window.location.origin).href;
+      return `
+        <div class="public-page-row">
+          <div style="display: flex; flex-direction: column; gap: 2px;">
+            <strong style="font-size: 0.95rem; color: #fff;">${escapeHtml(page.title)}</strong>
+            <span style="font-family: var(--font-mono); font-size: 0.76rem; color: var(--color-alex);">${url}</span>
+          </div>
+          <div class="public-page-actions">
+            <button type="button" class="btn-secondary" data-edit-slug="${escapeHtml(page.slug)}" title="Editar e Modelar Página">✏️ Editar</button>
+            <a href="${url}" target="_blank" rel="noopener" class="btn-open-chat">Abrir ↗</a>
+            <button type="button" class="btn-remove-agent" data-delete-slug="${escapeHtml(page.slug)}" title="Excluir Página">Excluir</button>
+          </div>
+        </div>
+      `;
+    }).join('') : '<span style="color: var(--text-muted); font-size: 0.8rem;">Nenhuma página publicada ainda. Crie sua primeira página acima!</span>';
+
+    // Bind Edit buttons
+    publicPagesList.querySelectorAll('[data-edit-slug]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const slug = btn.getAttribute('data-edit-slug');
+        openPageEditor(slug);
+      });
+    });
+
+    // Bind Delete buttons
+    publicPagesList.querySelectorAll('[data-delete-slug]').forEach(btn => {
+      btn.addEventListener('click', () => deletePublicPage(btn.getAttribute('data-delete-slug')));
+    });
+  } catch (e) {
+    console.error('Erro ao listar páginas públicas:', e);
+  }
+}
+
+async function deletePublicPage(slug) {
+  if (!window.confirm(`Deseja realmente excluir a página "${slug}"?`)) return;
+  const email = adminEmail || sessionStorage.getItem('alexUserEmail');
+  try {
+    const response = await fetch(getApiUrl(`/api/pages/${encodeURIComponent(slug)}?email=${encodeURIComponent(email)}`), { method: 'DELETE' });
+    if (response.ok) {
+      showToast('Página pública excluída.');
+      loadPublicPages();
+    } else {
+      const err = await response.json();
+      showToast('Erro ao excluir: ' + (err.message || 'Falha na requisição'));
+    }
+  } catch (err) {
+    showToast('Erro ao excluir: ' + err.message);
+  }
+}
+
+// ===================================================================
+//  ADMIN ZONE & AUTHENTICATION
+// ===================================================================
 let adminEmail = null;
 let adminUserName = null;
 
+const appContainer = document.getElementById('appContainer');
 const adminLoginArea = document.getElementById('adminLoginArea');
 const adminPanel = document.getElementById('adminPanel');
 const adminAvatar = document.getElementById('adminAvatar');
@@ -818,6 +1657,12 @@ const shutdownConfirmInfo = document.getElementById('shutdownConfirmInfo');
 const shutdownProgress = document.getElementById('shutdownProgress');
 const shutdownMessage = document.getElementById('shutdownMessage');
 const logoutBtn = document.getElementById('logoutBtn');
+const userRegistrationForm = document.getElementById('userRegistrationForm');
+const userNameInput = document.getElementById('userName');
+const userEmailInput = document.getElementById('userEmail');
+const usersList = document.getElementById('usersList');
+const userStatus = document.getElementById('userStatus');
+
 const adminTabs = document.querySelectorAll('.admin-only');
 const clientOnlyControls = document.querySelectorAll('.client-only');
 const adminOnlyPanels = document.querySelectorAll('.admin-only-panel');
@@ -826,12 +1671,10 @@ function applyRoleVisibility(isAdmin) {
   adminTabs.forEach(tab => { tab.style.display = isAdmin ? 'inline-flex' : 'none'; });
   adminOnlyPanels.forEach(panel => { panel.style.display = isAdmin ? 'flex' : 'none'; });
   clientOnlyControls.forEach(control => { control.style.display = isAdmin ? 'none' : 'inline-flex'; });
+  const openAgentPopupBtn = document.getElementById('openAgentPopupBtn');
   if (openAgentPopupBtn) openAgentPopupBtn.style.display = isAdmin ? 'block' : 'none';
 }
 
-/**
- * Decode a JWT token payload (Google ID token).
- */
 function decodeJwtPayload(token) {
   try {
     const base64Url = token.split('.')[1];
@@ -849,9 +1692,70 @@ function decodeJwtPayload(token) {
   }
 }
 
-/**
- * Google Sign-In callback — called by the Google Identity Services SDK.
- */
+const directLoginForm = document.getElementById('directLoginForm');
+const directLoginEmail = document.getElementById('directLoginEmail');
+const loginStatus = document.getElementById('loginStatus');
+const directLoginBtn = document.getElementById('directLoginBtn');
+
+function authenticateUser(email, name = '', picture = '') {
+  adminEmail = email;
+  adminUserName = name || email.split('@')[0];
+  sessionStorage.setItem('alexUserEmail', email);
+  sessionStorage.setItem('alexUserName', adminUserName);
+  if (picture) sessionStorage.setItem('alexUserPicture', picture);
+  
+  appContainer.classList.remove('locked');
+  adminLoginArea.style.display = 'none';
+  adminPanel.style.display = 'flex';
+  if (adminAvatar) adminAvatar.src = picture || '';
+  if (adminNameEl) adminNameEl.textContent = adminUserName;
+  
+  loadCustomAgents();
+  loadPublicPages();
+}
+
+if (directLoginForm && directLoginEmail) {
+  directLoginForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const email = directLoginEmail.value.trim().toLowerCase();
+    if (!email) return;
+
+    if (loginStatus) {
+      loginStatus.textContent = 'Verificando autorização...';
+      loginStatus.className = 'mini-status';
+    }
+    if (directLoginBtn) directLoginBtn.disabled = true;
+
+    try {
+      const res = await fetch(getApiUrl('/api/access/verify'), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email })
+      });
+      const data = await res.json();
+
+      if (data.authorized) {
+        authenticateUser(email);
+        applyRoleVisibility(data.admin);
+        if (data.admin) loadUsers();
+        showToast(data.admin ? `Bem-vindo, Administrador!` : `Bem-vindo à plataforma!`);
+      } else {
+        if (loginStatus) {
+          loginStatus.textContent = `O e-mail "${email}" não está autorizado. Solicite acesso ao administrador.`;
+          loginStatus.className = 'mini-status error';
+        }
+      }
+    } catch (err) {
+      if (loginStatus) {
+        loginStatus.textContent = `Erro ao conectar com o backend: ${err.message}`;
+        loginStatus.className = 'mini-status error';
+      }
+    } finally {
+      if (directLoginBtn) directLoginBtn.disabled = false;
+    }
+  });
+}
+
 window.handleGoogleLogin = async function(response) {
   const payload = decodeJwtPayload(response.credential);
   if (!payload) {
@@ -863,7 +1767,6 @@ window.handleGoogleLogin = async function(response) {
   const name = payload.name || email;
   const picture = payload.picture || '';
 
-  // Verify admin status with backend
   try {
     const res = await fetch(getApiUrl('/api/access/verify'), {
       method: 'POST',
@@ -875,35 +1778,16 @@ window.handleGoogleLogin = async function(response) {
     const data = await res.json();
 
     if (data.authorized) {
-      adminEmail = email;
-      adminUserName = name;
-      sessionStorage.setItem('alexUserEmail', email);
-      sessionStorage.setItem('alexUserName', name);
-      sessionStorage.setItem('alexUserPicture', picture);
-      appContainer.classList.remove('locked');
-
-      // Show admin panel, hide login button
-      adminLoginArea.style.display = 'none';
-      adminPanel.style.display = 'flex';
-      adminAvatar.src = picture;
-      adminNameEl.textContent = name;
+      authenticateUser(email, name, picture);
       applyRoleVisibility(data.admin);
-
-      showToast(data.admin ? `Bem-vindo, ${name}! Modo admin ativo.` : `Bem-vindo, ${name}!`);
-      appendMessage('SISTEMA', `🔐 Usuário autenticado: ${name} (${email}).`, 'assistant');
-      
-      // Update custom agents to show delete buttons
-      loadCustomAgents();
       if (data.admin) loadUsers();
-      loadPublicPages();
-      activateWorkspaceMode();
-      loadPageEditor();
+      showToast(data.admin ? `Bem-vindo, Administrador ${name}!` : `Bem-vindo, ${name}!`);
     } else {
       showToast(`O e-mail ${email} ainda não está autorizado.`);
     }
   } catch (err) {
-    console.error('Erro verificando admin:', err);
-    showToast('Erro ao verificar permissões de admin.');
+    console.error('Erro verificando usuário:', err);
+    showToast('Erro ao verificar permissões.');
   }
 };
 
@@ -926,6 +1810,7 @@ function initializeGoogleSignIn() {
 }
 
 window.addEventListener('load', () => {
+  initHelpTips();
   if (initializeGoogleSignIn()) return;
   let attempts = 0;
   const timer = window.setInterval(() => {
@@ -934,308 +1819,142 @@ window.addEventListener('load', () => {
   }, 250);
 });
 
-logoutBtn.addEventListener('click', () => {
-  sessionStorage.clear();
-  window.location.reload();
-});
-
-userRegistrationForm.addEventListener('submit', async (event) => {
-  event.preventDefault();
-  userStatus.textContent = 'Salvando cliente...';
-  try {
-    const response = await fetch(getApiUrl(`/api/admin/users?adminEmail=${encodeURIComponent(adminEmail)}`), {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name: userNameInput.value.trim(), email: userEmailInput.value.trim() })
-    });
-    const data = await response.json();
-    if (!response.ok) throw new Error(data.message || 'Não foi possível cadastrar o cliente.');
-    userRegistrationForm.reset();
-    userStatus.textContent = 'Cliente cadastrado com sucesso.';
-    loadUsers();
-  } catch (error) {
-    userStatus.textContent = error.message;
-    userStatus.className = 'mini-status error';
-  }
-});
-
-async function loadUsers() {
-  if (!adminEmail || !usersList) return;
-  const response = await fetch(getApiUrl(`/api/admin/users?adminEmail=${encodeURIComponent(adminEmail)}`));
-  if (!response.ok) return;
-  const users = await response.json();
-  usersList.innerHTML = users.length ? users.map(user => `
-    <div class="user-row"><div><strong>${escapeHtml(user.name)}</strong><span>${escapeHtml(user.email)}</span></div>
-    <button class="btn-remove-agent" data-user-id="${user.id}">Remover</button></div>`).join('') : '<span class="empty-state">Nenhum cliente cadastrado.</span>';
-  usersList.querySelectorAll('[data-user-id]').forEach(button => button.addEventListener('click', () => removeUser(button.dataset.userId)));
+if (logoutBtn) {
+  logoutBtn.addEventListener('click', () => {
+    sessionStorage.clear();
+    window.location.reload();
+  });
 }
 
-async function removeUser(id) {
-  const response = await fetch(getApiUrl(`/api/admin/users/${id}?adminEmail=${encodeURIComponent(adminEmail)}`), { method: 'DELETE' });
-  if (response.ok) loadUsers();
-}
-
-publicPageForm.addEventListener('submit', async (event) => {
-  event.preventDefault();
-  const email = adminEmail || sessionStorage.getItem('alexUserEmail');
-  const isEditing = Boolean(editingPageSlug);
-  pageStatus.textContent = isEditing ? 'Salvando edição...' : 'Publicando página...';
-  pageStatus.className = 'mini-status';
-  try {
-    const endpoint = isEditing ? `/api/pages/${encodeURIComponent(editingPageSlug)}?email=${encodeURIComponent(email)}` : `/api/pages?email=${encodeURIComponent(email)}`;
-    const response = await fetch(getApiUrl(endpoint), {
-      method: isEditing ? 'PUT' : 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ slug: pageSlug.value.trim(), title: pageTitle.value.trim(), content: pageContent.value.trim() })
-    });
-    const data = await response.json();
-    if (!response.ok) throw new Error(data.message || 'Não foi possível publicar.');
-    const publicUrl = new URL(data.publicUrl, window.location.origin).href;
-    pageStatus.innerHTML = `${isEditing ? 'Edição salva' : 'Página publicada'}: <a href="${publicUrl}" target="_blank" rel="noopener">${publicUrl}</a>`;
-    resetPageEditor();
-    loadPublicPages();
-  } catch (error) {
-    pageStatus.textContent = error.message;
-    pageStatus.className = 'mini-status error';
-  }
-});
-
-async function loadPublicPages() {
-  const email = adminEmail || sessionStorage.getItem('alexUserEmail');
-  if (!email || !publicPagesList) return;
-  const response = await fetch(getApiUrl(`/api/pages?email=${encodeURIComponent(email)}`));
-  if (!response.ok) return;
-  const pages = await response.json();
-  publicPagesList.innerHTML = pages.length ? pages.map(page => {
-    const url = new URL(`/public/${encodeURIComponent(page.slug)}`, window.location.origin).href;
-    return `<div class="public-page-row"><div><strong>${escapeHtml(page.title)}</strong><span>${url}</span></div><div class="public-page-actions"><button type="button" class="btn-open-chat" data-edit-page="${escapeHtml(page.slug)}">Editar</button><a href="${url}" target="_blank" rel="noopener" class="btn-open-chat">Abrir</a><button type="button" class="btn-remove-agent" data-delete-page="${escapeHtml(page.slug)}">Excluir</button></div></div>`;
-  }).join('') : '<span class="empty-state">Nenhuma página publicada ainda.</span>';
-  publicPagesList.querySelectorAll('[data-edit-page]').forEach(button => button.addEventListener('click', () => startPageEdit(pages.find(page => page.slug === button.dataset.editPage))));
-  publicPagesList.querySelectorAll('[data-delete-page]').forEach(button => button.addEventListener('click', () => deletePublicPage(button.dataset.deletePage)));
-}
-
-function startPageEdit(page) {
-  if (!page) return;
-  window.location.href = `/?mode=edit&page=${encodeURIComponent(page.slug)}`;
-}
-
-function showEditorTab() {
-  document.querySelectorAll('.tab-btn').forEach(button => button.classList.remove('active'));
-  document.querySelectorAll('.tab-content').forEach(content => { content.classList.remove('active'); content.style.display = 'none'; });
-  pageEditorTab.classList.add('active');
-  pageEditorTab.style.display = 'flex';
-}
-
-async function loadPageEditor() {
-  const params = new URLSearchParams(window.location.search);
-  const slug = params.get('page');
-  const email = adminEmail || sessionStorage.getItem('alexUserEmail');
-  if (params.get('mode') !== 'edit' || !slug || !email) return;
-  const response = await fetch(getApiUrl(`/api/pages/data/${encodeURIComponent(slug)}?email=${encodeURIComponent(email)}`));
-  if (!response.ok) return;
-  const page = await response.json();
-  editingPageSlug = page.slug;
-  editorPageSlug.value = page.slug;
-  editorPageTitle.value = page.title;
-  editorPageContent.value = page.content;
-  document.getElementById('pageEditorHeading').textContent = `Editando: ${page.title}`;
-  showEditorTab();
-  updateEditorPreview();
-}
-
-function updateEditorPreview() {
-  editorPreviewUrl.textContent = `/public/${editorPageSlug.value || 'endpoint'}`;
-  editorPreview.innerHTML = `<h1>${escapeHtml(editorPageTitle.value || 'Título da página')}</h1><p>${escapeHtml(editorPageContent.value || 'O conteúdo aparecerá aqui.').replace(/\n/g, '<br>')}</p>`;
-}
-
-pageEditorForm.addEventListener('submit', async event => {
-  event.preventDefault();
-  const email = adminEmail || sessionStorage.getItem('alexUserEmail');
-  const response = await fetch(getApiUrl(`/api/pages/${encodeURIComponent(editingPageSlug)}?email=${encodeURIComponent(email)}`), { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ slug: editorPageSlug.value.trim(), title: editorPageTitle.value.trim(), content: editorPageContent.value.trim() }) });
-  const data = await response.json();
-  editorStatus.textContent = response.ok ? `Salvo. Link público: ${new URL(data.publicUrl, window.location.origin).href}` : (data.message || 'Não foi possível salvar.');
-  if (response.ok) { editingPageSlug = data.slug; history.replaceState({}, '', `/?mode=edit&page=${encodeURIComponent(data.slug)}`); updateEditorPreview(); }
-});
-
-previewPageBtn.addEventListener('click', updateEditorPreview);
-editorPageContent.addEventListener('input', updateEditorPreview);
-editorPageTitle.addEventListener('input', updateEditorPreview);
-editorPageSlug.addEventListener('input', updateEditorPreview);
-closePageEditorBtn.addEventListener('click', () => { window.location.href = '/'; });
-
-editorChatSendBtn.addEventListener('click', async () => {
-  const message = editorChatInput.value.trim();
-  if (!message) return;
-  editorChatHistory.innerHTML += `<div class="editor-chat-message user">Você: ${escapeHtml(message)}</div>`;
-  editorChatInput.value = '';
-  const response = await fetch(getApiUrl('/api/chat'), { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ agent: getSelectedAgent(), message: `Estou editando uma página com título "${editorPageTitle.value}" e conteúdo "${editorPageContent.value}". ${message} Responda com uma sugestão prática de edição, sem alterar o conteúdo automaticamente.` }) });
-  const data = await response.json();
-  editorChatHistory.innerHTML += `<div class="editor-chat-message assistant">${escapeHtml(data.response || 'Não foi possível responder agora.')}</div>`;
-  editorChatHistory.scrollTop = editorChatHistory.scrollHeight;
-});
-
-function resetPageEditor() {
-  editingPageSlug = null;
-  publicPageForm.reset();
-  publishPageBtn.textContent = 'Publicar página';
-  cancelPageEditBtn.style.display = 'none';
-}
-
-cancelPageEditBtn.addEventListener('click', resetPageEditor);
-
-async function deletePublicPage(slug) {
-  const email = adminEmail || sessionStorage.getItem('alexUserEmail');
-  if (!window.confirm('Excluir esta página pública? O link deixará de funcionar.')) return;
-  const response = await fetch(getApiUrl(`/api/pages/${encodeURIComponent(slug)}?email=${encodeURIComponent(email)}`), { method: 'DELETE' });
-  if (response.ok) {
-    if (editingPageSlug === slug) resetPageEditor();
-    pageStatus.textContent = 'Página excluída.';
-    loadPublicPages();
-  }
-}
-
+// Check saved session
 const savedEmail = sessionStorage.getItem('alexUserEmail');
 if (savedEmail) {
-  fetch(getApiUrl('/api/access/verify'), { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email: savedEmail }) })
-    .then(response => response.json()).then(data => {
+  fetch(getApiUrl('/api/access/verify'), {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email: savedEmail })
+  })
+    .then(r => r.json())
+    .then(data => {
       if (!data.authorized) return sessionStorage.clear();
       adminEmail = savedEmail;
       adminUserName = sessionStorage.getItem('alexUserName') || savedEmail;
       appContainer.classList.remove('locked');
       adminLoginArea.style.display = 'none';
       adminPanel.style.display = 'flex';
-      adminNameEl.textContent = adminUserName;
+      if (adminAvatar) adminAvatar.src = sessionStorage.getItem('alexUserPicture') || '';
+      if (adminNameEl) adminNameEl.textContent = adminUserName;
       applyRoleVisibility(data.admin);
+      loadCustomAgents();
       if (data.admin) loadUsers();
       loadPublicPages();
-      activateWorkspaceMode();
-      loadPageEditor();
     });
 }
 
-/**
- * Open shutdown confirmation modal.
- */
-shutdownBtn.addEventListener('click', () => {
-  shutdownConfirmInfo.innerHTML = `
-    <p><strong>Administrador:</strong> ${adminUserName} (${adminEmail})</p>
-    <p><strong>Ação:</strong> Encerrar todos os serviços do backend</p>
-    <p><strong>Hora:</strong> ${new Date().toLocaleString('pt-BR')}</p>
-  `;
-  shutdownModal.style.display = 'flex';
-  shutdownProgress.style.display = 'none';
-  shutdownConfirm.disabled = false;
-  shutdownCancel.disabled = false;
-});
-
-/**
- * Cancel shutdown.
- */
-shutdownCancel.addEventListener('click', () => {
-  shutdownModal.style.display = 'none';
-});
-
-// Close modal on overlay click
-shutdownModal.addEventListener('click', (e) => {
-  if (e.target === shutdownModal) {
-    shutdownModal.style.display = 'none';
-  }
-});
-
-/**
- * Confirm and execute shutdown.
- */
-shutdownConfirm.addEventListener('click', async () => {
-  if (!adminEmail) {
-    showToast('Erro: nenhum admin autenticado.');
-    return;
-  }
-
-  shutdownConfirm.disabled = true;
-  shutdownCancel.disabled = true;
-  shutdownProgress.style.display = 'block';
-  shutdownMessage.textContent = 'Enviando comando de shutdown...';
-
-  try {
-    const res = await fetch(getApiUrl('/api/admin/shutdown'), {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email: adminEmail })
-    });
-
-    const data = await res.json();
-
-    if (data.status === 'SHUTTING_DOWN') {
-      shutdownMessage.textContent = '⏻ ' + data.message;
-      showToast('Plataforma está sendo desligada...');
-      appendMessage('SISTEMA', `🔴 SHUTDOWN: ${data.message}`, 'assistant');
-
-      // Animate progress bar
-      const progressBar = shutdownProgress.querySelector('.shutdown-progress-bar');
-      progressBar.style.width = '100%';
-
-      // After 3 seconds, show final message
-      setTimeout(() => {
-        shutdownMessage.textContent = '✅ Plataforma desligada. A conexão será perdida em instantes.';
-        document.body.style.opacity = '0.3';
-        document.body.style.transition = 'opacity 2s ease';
-      }, 3000);
-
-    } else {
-      shutdownMessage.textContent = '❌ ' + data.message;
-      shutdownConfirm.disabled = false;
-      shutdownCancel.disabled = false;
+// User registration (Admin)
+if (userRegistrationForm) {
+  userRegistrationForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    userStatus.textContent = 'Cadastrando...';
+    try {
+      const response = await fetch(getApiUrl(`/api/admin/users?adminEmail=${encodeURIComponent(adminEmail)}`), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: userNameInput.value.trim(), email: userEmailInput.value.trim() })
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.message || 'Erro ao cadastrar.');
+      userRegistrationForm.reset();
+      userStatus.textContent = 'Cliente cadastrado com sucesso!';
+      loadUsers();
+    } catch (err) {
+      userStatus.textContent = err.message;
+      userStatus.className = 'mini-status error';
     }
-  } catch (err) {
-    shutdownMessage.textContent = `Erro: ${err.message}`;
-    shutdownConfirm.disabled = false;
-    shutdownCancel.disabled = false;
+  });
+}
+
+async function loadUsers() {
+  if (!adminEmail || !usersList) return;
+  try {
+    const res = await fetch(getApiUrl(`/api/admin/users?adminEmail=${encodeURIComponent(adminEmail)}`));
+    if (!res.ok) return;
+    const users = await res.json();
+    usersList.innerHTML = users.length ? users.map(user => `
+      <div class="user-row">
+        <div><strong>${escapeHtml(user.name)}</strong> <span>(${escapeHtml(user.email)})</span></div>
+        <button class="btn-remove-agent" data-user-id="${user.id}">Remover</button>
+      </div>
+    `).join('') : '<span style="color: var(--text-muted); font-size: 0.8rem;">Nenhum cliente cadastrado.</span>';
+
+    usersList.querySelectorAll('[data-user-id]').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        await fetch(getApiUrl(`/api/admin/users/${btn.dataset.userId}?adminEmail=${encodeURIComponent(adminEmail)}`), { method: 'DELETE' });
+        loadUsers();
+      });
+    });
+  } catch (e) {
+    console.error(e);
   }
-});
+}
 
+// Shutdown Controls
+if (shutdownBtn && shutdownModal) {
+  shutdownBtn.addEventListener('click', () => {
+    shutdownConfirmInfo.innerHTML = `
+      <p><strong>Administrador:</strong> ${escapeHtml(adminUserName)} (${escapeHtml(adminEmail)})</p>
+      <p><strong>Ação:</strong> Encerrar backend da plataforma</p>
+      <p><strong>Horário:</strong> ${new Date().toLocaleString('pt-BR')}</p>
+    `;
+    shutdownModal.style.display = 'flex';
+  });
+
+  shutdownCancel.addEventListener('click', () => { shutdownModal.style.display = 'none'; });
+  shutdownModal.addEventListener('click', (e) => { if (e.target === shutdownModal) shutdownModal.style.display = 'none'; });
+
+  shutdownConfirm.addEventListener('click', async () => {
+    if (!adminEmail) return;
+    shutdownConfirm.disabled = true;
+    shutdownCancel.disabled = true;
+    shutdownProgress.style.display = 'block';
+    
+    try {
+      const res = await fetch(getApiUrl('/api/admin/shutdown'), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: adminEmail })
+      });
+      const data = await res.json();
+      shutdownMessage.textContent = '⏻ ' + data.message;
+      showToast('Desligando plataforma...');
+      setTimeout(() => {
+        document.body.style.opacity = '0.2';
+      }, 2000);
+    } catch (err) {
+      shutdownMessage.textContent = `Erro: ${err.message}`;
+    }
+  });
+}
 
 // ===================================================================
-//  TABS LOGIC (Builder vs Agent Browser)
+//  TAB SWITCHING SYSTEM
 // ===================================================================
-
 const tabBtns = document.querySelectorAll(".tab-btn");
 const tabContents = document.querySelectorAll(".tab-content");
 
-document.querySelectorAll('.help-tip').forEach(helpTip => {
-  helpTip.setAttribute('role', 'button');
-  helpTip.setAttribute('tabindex', '0');
-  const toggleHelp = event => {
-    event.stopPropagation();
-    document.querySelectorAll('.help-tip.is-open').forEach(openTip => {
-      if (openTip !== helpTip) openTip.classList.remove('is-open');
-    });
-    helpTip.classList.toggle('is-open');
-  };
-  helpTip.addEventListener('click', toggleHelp);
-  helpTip.addEventListener('keydown', event => {
-    if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); toggleHelp(event); }
-  });
-});
-
-document.addEventListener('click', () => {
-  document.querySelectorAll('.help-tip.is-open').forEach(helpTip => helpTip.classList.remove('is-open'));
-});
-
 tabBtns.forEach(btn => {
   btn.addEventListener("click", () => {
-    // Remove active class from all
     tabBtns.forEach(b => b.classList.remove("active"));
     tabContents.forEach(c => {
       c.classList.remove("active");
       c.style.display = "none";
     });
 
-    // Add active class to clicked
     btn.classList.add("active");
     const targetId = btn.getAttribute("data-target");
-    if(targetId) {
+    if (targetId) {
       const targetEl = document.getElementById(targetId);
-      if(targetEl) {
+      if (targetEl) {
         targetEl.classList.add("active");
         targetEl.style.display = "flex";
       }
@@ -1244,9 +1963,12 @@ tabBtns.forEach(btn => {
 });
 
 // ===================================================================
-//  AGENT BROWSER & VISION OVERLAY LOGIC
+//  OBSERVER DEMO POPUP CONTROLS
 // ===================================================================
-
+const openAgentPopupBtn = document.getElementById("openAgentPopupBtn");
+const agentPopup = document.getElementById("agentPopup");
+const closePopupBtn = document.getElementById("closePopupBtn");
+const agentPopupHeader = document.getElementById("agentPopupHeader");
 const loadBrowserBtn = document.getElementById("loadBrowserBtn");
 const browserUrl = document.getElementById("browserUrl");
 const targetIframe = document.getElementById("targetIframe");
@@ -1255,174 +1977,33 @@ const agentVisionLogs = document.getElementById("agentVisionLogs");
 const startPredictionsBtn = document.getElementById("startPredictionsBtn");
 const scannerLaser = document.getElementById("scannerLaser");
 
-const agentPopup = document.getElementById("agentPopup");
-const openAgentPopupBtn = document.getElementById("openAgentPopupBtn");
-const closePopupBtn = document.getElementById("closePopupBtn");
-const agentPopupHeader = document.getElementById("agentPopupHeader");
+if (openAgentPopupBtn) openAgentPopupBtn.addEventListener('click', () => { if (agentPopup) agentPopup.style.display = 'flex'; });
+if (closePopupBtn) closePopupBtn.addEventListener('click', () => { if (agentPopup) agentPopup.style.display = 'none'; });
 
-if(openAgentPopupBtn) {
-  openAgentPopupBtn.addEventListener("click", () => {
-    agentPopup.style.display = "flex";
-  });
-}
-
-if(closePopupBtn) {
-  closePopupBtn.addEventListener("click", () => {
-    agentPopup.style.display = "none";
-  });
-}
-
-// Drag logic for Popup itself
-let isPopupDragging = false;
-let popupInitialX, popupInitialY;
-let popupOffsetX = 0, popupOffsetY = 0;
-
-if(agentPopupHeader) {
-  agentPopupHeader.addEventListener("mousedown", (e) => {
-    isPopupDragging = true;
-    const rect = agentPopup.getBoundingClientRect();
-    popupOffsetX = e.clientX - rect.left;
-    popupOffsetY = e.clientY - rect.top;
-  });
-  
-  document.addEventListener("mousemove", (e) => {
-    if(isPopupDragging) {
-      e.preventDefault();
-      agentPopup.style.left = (e.clientX - popupOffsetX) + "px";
-      agentPopup.style.top = (e.clientY - popupOffsetY) + "px";
-      agentPopup.style.right = "auto";
-      agentPopup.style.bottom = "auto";
-    }
-  });
-  
-  document.addEventListener("mouseup", () => {
-    isPopupDragging = false;
-  });
-}
-
-function logVision(msg, isSystem = false) {
-  const log = document.createElement("div");
-  log.className = `log-entry ${isSystem ? 'system' : ''}`;
-  log.textContent = msg;
-  agentVisionLogs.appendChild(log);
-  agentVisionLogs.scrollTop = agentVisionLogs.scrollHeight;
-}
-
-if(loadBrowserBtn) {
-  loadBrowserBtn.addEventListener("click", () => {
+if (loadBrowserBtn && browserUrl && targetIframe && visionOverlay) {
+  loadBrowserBtn.addEventListener('click', () => {
     const url = browserUrl.value.trim();
-    if(url) {
+    if (url) {
       targetIframe.src = url;
-      logVision(`[Sistema] Navegador configurado para: ${url}`, true);
-      visionOverlay.style.display = "block"; // Show the overlay
+      visionOverlay.style.display = 'block';
     }
   });
 }
 
-if(startPredictionsBtn) {
-  startPredictionsBtn.addEventListener("click", () => {
-    logVision("[Visão] Escaneando pixels na coordenada da lente...", true);
-    scannerLaser.style.display = "block";
+if (startPredictionsBtn && scannerLaser && agentVisionLogs) {
+  startPredictionsBtn.addEventListener('click', () => {
+    scannerLaser.style.display = 'block';
+    const log = document.createElement('div');
+    log.className = 'log-entry system';
+    log.textContent = '[Visão] Escaneando coordenadas da lente...';
+    agentVisionLogs.appendChild(log);
     
     setTimeout(() => {
-       scannerLaser.style.display = "none";
-       logVision("[Motor K] Visão processada. Extraindo cartas: 10H, 4C, AS. RC atualizado.");
-       logVision("[Motor K] AÇÃO RECOMENDADA: DOBRAR (DOUBLE DOWN). TC > +1", true);
-    }, 2500);
+      scannerLaser.style.display = 'none';
+      const logResult = document.createElement('div');
+      logResult.className = 'log-entry success';
+      logResult.textContent = '[Motor OCR] Elementos identificados com sucesso na área selecionada.';
+      agentVisionLogs.appendChild(logResult);
+    }, 2000);
   });
 }
-
-// Drag logic for visionOverlay
-let isDragging = false;
-let currentX;
-let currentY;
-let initialX;
-let initialY;
-let xOffset = 20; // Default matches CSS top/left
-let yOffset = 20;
-
-if(visionOverlay) {
-  visionOverlay.addEventListener("mousedown", dragStart);
-  document.addEventListener("mouseup", dragEnd);
-  document.addEventListener("mousemove", drag);
-}
-
-function dragStart(e) {
-  // Prevent dragging when resizing (bottom/right edges)
-  const rect = visionOverlay.getBoundingClientRect();
-  if (e.clientX > rect.right - 20 || e.clientY > rect.bottom - 20) {
-    return;
-  }
-  
-  initialX = e.clientX - xOffset;
-  initialY = e.clientY - yOffset;
-
-  if (e.target === visionOverlay || e.target.parentNode === visionOverlay) {
-    isDragging = true;
-  }
-}
-
-function dragEnd(e) {
-  initialX = currentX;
-  initialY = currentY;
-  
-  if (isDragging) {
-    // Log the new coordinates when drag stops
-    const rect = visionOverlay.getBoundingClientRect();
-    const sandboxRect = document.getElementById('visionSandboxContainer').getBoundingClientRect();
-    
-    const relX = Math.round(rect.left - sandboxRect.left);
-    const relY = Math.round(rect.top - sandboxRect.top);
-    const width = Math.round(rect.width);
-    const height = Math.round(rect.height);
-    
-    logVision(`[Telemetria] Zona alvo movida: { x: ${relX}, y: ${relY}, w: ${width}, h: ${height} }`);
-  }
-  isDragging = false;
-}
-
-function drag(e) {
-  if (isDragging) {
-    e.preventDefault();
-    currentX = e.clientX - initialX;
-    currentY = e.clientY - initialY;
-
-    xOffset = currentX;
-    yOffset = currentY;
-
-    setTranslate(currentX, currentY, visionOverlay);
-  }
-}
-
-function setTranslate(xPos, yPos, el) {
-  el.style.left = xPos + "px";
-  el.style.top = yPos + "px";
-}
-
-// Handle resize events using ResizeObserver
-if (visionOverlay) {
-  const resizeObserver = new ResizeObserver(entries => {
-    // Ignore initial call
-    if(visionOverlay.style.display === "none") return;
-    
-    for (let entry of entries) {
-      if(isDragging) continue; // Don't log while dragging, wait for mouseup
-      
-      const width = Math.round(entry.contentRect.width);
-      const height = Math.round(entry.contentRect.height);
-      const rect = visionOverlay.getBoundingClientRect();
-      const sandboxRect = document.getElementById('visionSandboxContainer').getBoundingClientRect();
-      const relX = Math.round(rect.left - sandboxRect.left);
-      const relY = Math.round(rect.top - sandboxRect.top);
-      
-      // Throttle log creation via timeout to avoid spam during smooth resize
-      if(window.resizeLogTimeout) clearTimeout(window.resizeLogTimeout);
-      window.resizeLogTimeout = setTimeout(() => {
-        logVision(`[Telemetria] Lente redimensionada: { x: ${relX}, y: ${relY}, w: ${width}, h: ${height} }`);
-      }, 500);
-    }
-  });
-  resizeObserver.observe(visionOverlay);
-}
-
-
