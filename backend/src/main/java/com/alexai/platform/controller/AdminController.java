@@ -24,11 +24,47 @@ public class AdminController {
         this.userAccessService = userAccessService;
     }
 
+    @GetMapping("/auth/config")
+    public Map<String, Object> getAuthConfig() {
+        String clientId = System.getenv().getOrDefault("GOOGLE_CLIENT_ID", "800464070591-33nvvitct598mb53dccehl15q8cjm4m9.apps.googleusercontent.com");
+        return Map.of(
+            "googleClientId", clientId,
+            "platformVersion", "2.0.0",
+            "authMode", "GOOGLE_AND_DIRECT"
+        );
+    }
+
     @PostMapping("/access/verify")
     public Map<String, Object> verifyAccess(@RequestBody Map<String, String> body) {
-        String email = body.getOrDefault("email", "");
+        String email = body.getOrDefault("email", "").trim().toLowerCase();
+        String name = body.getOrDefault("name", "").trim();
         boolean admin = adminAuthService.isAdmin(email);
-        return Map.of("authorized", admin || userAccessService.isAllowed(email), "admin", admin, "email", email);
+        boolean allowed = admin || userAccessService.isAllowed(email);
+
+        // If not authorized and not admin, automatically register an access request
+        boolean requestCreated = false;
+        if (!allowed && !email.isBlank() && email.contains("@")) {
+            requestCreated = userAccessService.addAccessRequest(email, name);
+        }
+
+        return Map.of(
+            "authorized", allowed,
+            "admin", admin,
+            "email", email,
+            "name", name.isBlank() ? email : name,
+            "requestRegistered", requestCreated || !allowed
+        );
+    }
+
+    @PostMapping("/access/request")
+    public ResponseEntity<?> requestAccess(@RequestBody Map<String, String> body) {
+        String email = body.getOrDefault("email", "").trim().toLowerCase();
+        String name = body.getOrDefault("name", "").trim();
+        if (email.isBlank() || !email.contains("@")) {
+            return ResponseEntity.badRequest().body(Map.of("message", "Informe um e-mail válido."));
+        }
+        boolean created = userAccessService.addAccessRequest(email, name);
+        return ResponseEntity.ok(Map.of("registered", created, "message", "Pedido de acesso registrado com sucesso."));
     }
 
     @GetMapping("/admin/users")
@@ -79,8 +115,47 @@ public class AdminController {
         }
     }
 
+    @GetMapping("/admin/requests")
+    public ResponseEntity<?> listRequests(@RequestParam String adminEmail) {
+        if (!adminAuthService.isAdmin(adminEmail)) return denied();
+        return ResponseEntity.ok(userAccessService.readRequests());
+    }
+
+    @PostMapping("/admin/requests/{id}/approve")
+    public ResponseEntity<?> approveRequest(@PathVariable String id, @RequestParam String adminEmail) {
+        if (!adminAuthService.isAdmin(adminEmail)) return denied();
+        try {
+            Map<String, Object> user = userAccessService.approveRequest(id);
+            if (user == null) {
+                return ResponseEntity.notFound().build();
+            }
+            return ResponseEntity.ok(user);
+        } catch (IOException exception) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of("message", "Erro ao aprovar pedido de acesso."));
+        }
+    }
+
+    @PostMapping("/admin/requests/{id}/reject")
+    public ResponseEntity<?> rejectRequest(@PathVariable String id, @RequestParam String adminEmail) {
+        if (!adminAuthService.isAdmin(adminEmail)) return denied();
+        try {
+            boolean removed = userAccessService.rejectRequest(id);
+            if (!removed) {
+                return ResponseEntity.notFound().build();
+            }
+            return ResponseEntity.noContent().build();
+        } catch (IOException exception) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of("message", "Erro ao recusar pedido de acesso."));
+        }
+    }
+
+    @DeleteMapping("/admin/requests/{id}")
+    public ResponseEntity<?> deleteRequest(@PathVariable String id, @RequestParam String adminEmail) {
+        return rejectRequest(id, adminEmail);
+    }
+
     private ResponseEntity<Map<String, String>> denied() {
         return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                .body(Map.of("message", "Apenas administradores podem gerenciar usuários."));
+                .body(Map.of("message", "Apenas administradores podem gerenciar usuários e pedidos de acesso."));
     }
 }

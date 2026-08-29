@@ -188,10 +188,22 @@ start_backend_service() {
   fuser -k "${PORT}/tcp" 2>/dev/null || true
 
   log_step "Iniciando backend na porta $PORT..."
+
+  # Carrega variáveis do .env se existir
+  if [[ -f "$ROOT_DIR/.env" ]]; then
+    set -a
+    # shellcheck disable=SC1091
+    source "$ROOT_DIR/.env"
+    set +a
+    log_ok ".env carregado com sucesso."
+  fi
+
   export PORT
   export OLLAMA_URL="http://127.0.0.1:11434"
   export OLLAMA_MODEL="$OLLAMA_MODEL"
   export PUBLIC_MEDIA_DIR="$ROOT_DIR/db/public_media"
+  export ADMIN_EMAILS="${ADMIN_EMAILS:-asizaguirre@gmail.com}"
+  export USER_DB_PATH="${USER_DB_PATH:-$ROOT_DIR/db/users.json}"
 
   nohup java -jar "$jar_file" > "$BACKEND_LOG" 2>&1 &
   local backend_pid=$!

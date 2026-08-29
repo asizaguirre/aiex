@@ -38,6 +38,137 @@ function escapeHtml(value) {
 }
 
 // ===================================================================
+//  PRIMARY THEME & COLOR PERSONALIZATION SYSTEM (Para o Cliente Final)
+// ===================================================================
+function hexToRgb(hex) {
+  if (!hex) return null;
+  let clean = hex.replace('#', '').trim();
+  if (clean.length === 3) {
+    clean = clean.split('').map(c => c + c).join('');
+  }
+  if (clean.length !== 6) return null;
+  const num = parseInt(clean, 16);
+  return {
+    r: (num >> 16) & 255,
+    g: (num >> 8) & 255,
+    b: num & 255
+  };
+}
+
+function adjustHexBrightness(hex, percent) {
+  const rgb = hexToRgb(hex);
+  if (!rgb) return hex;
+  const amt = Math.round(2.55 * percent);
+  const r = Math.min(255, Math.max(0, rgb.r + amt));
+  const g = Math.min(255, Math.max(0, rgb.g + amt));
+  const b = Math.min(255, Math.max(0, rgb.b + amt));
+  return '#' + ((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1);
+}
+
+function applySystemPrimaryColor(hexColor, save = true) {
+  if (!hexColor || !hexColor.startsWith('#')) return;
+  const rgb = hexToRgb(hexColor);
+  if (!rgb) return;
+
+  const darkHex = adjustHexBrightness(hexColor, -22);
+  const root = document.documentElement;
+
+  root.style.setProperty('--color-alex', hexColor);
+  root.style.setProperty('--color-alex-dark', darkHex);
+  root.style.setProperty('--color-alex-glow', `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.25)`);
+  root.style.setProperty('--border-highlight', `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.35)`);
+  root.style.setProperty('--border-focus', `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.6)`);
+  root.style.setProperty('--shadow-glow-alex', `0 0 24px -2px rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.3)`);
+
+  const preview = document.getElementById('themeColorPreview');
+  if (preview) {
+    preview.style.backgroundColor = hexColor;
+    preview.style.boxShadow = `0 0 8px ${hexColor}`;
+  }
+
+  const customInput = document.getElementById('themeCustomColorInput');
+  if (customInput) customInput.value = hexColor;
+
+  const hexLabel = document.getElementById('themeColorHexLabel');
+  if (hexLabel) hexLabel.textContent = hexColor.toUpperCase();
+
+  document.querySelectorAll('.theme-preset-btn').forEach(btn => {
+    const btnColor = btn.getAttribute('data-color');
+    const isCurrent = btnColor && btnColor.toLowerCase() === hexColor.toLowerCase();
+    btn.classList.toggle('active', !!isCurrent);
+  });
+
+  if (save) {
+    localStorage.setItem('alex_user_theme_color', hexColor);
+  }
+}
+
+// Aplicação instantânea da cor preferida salva (Apple Blue padrão)
+(function loadInitialTheme() {
+  const saved = localStorage.getItem('alex_apple_theme_color') || localStorage.getItem('alex_user_theme_color') || '#0071e3';
+  applySystemPrimaryColor(saved, false);
+})();
+
+function initThemePicker() {
+  const themeToggleBtn = document.getElementById('themeToggleBtn');
+  const themeDropdown = document.getElementById('themeDropdown');
+  const themePickerContainer = document.getElementById('themePickerContainer');
+  const customInput = document.getElementById('themeCustomColorInput');
+  const resetBtn = document.getElementById('btnResetTheme');
+
+  if (!themeToggleBtn || !themeDropdown) return;
+
+  const activeColor = localStorage.getItem('alex_apple_theme_color') || localStorage.getItem('alex_user_theme_color') || '#0071e3';
+  applySystemPrimaryColor(activeColor, false);
+
+  themeToggleBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    const isVisible = themeDropdown.style.display === 'flex';
+    themeDropdown.style.display = isVisible ? 'none' : 'flex';
+  });
+
+  document.querySelectorAll('.theme-preset-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const color = btn.getAttribute('data-color');
+      if (color) {
+        applySystemPrimaryColor(color, true);
+        localStorage.setItem('alex_apple_theme_color', color);
+        showToast('🎨 Acento Apple atualizado!');
+      }
+    });
+  });
+
+  if (customInput) {
+    customInput.addEventListener('input', (e) => {
+      applySystemPrimaryColor(e.target.value, true);
+    });
+    customInput.addEventListener('change', (e) => {
+      applySystemPrimaryColor(e.target.value, true);
+      localStorage.setItem('alex_apple_theme_color', e.target.value);
+      showToast('🎨 Cor personalizada salva!');
+    });
+  }
+
+  if (resetBtn) {
+    resetBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      applySystemPrimaryColor('#0071e3', true);
+      localStorage.setItem('alex_apple_theme_color', '#0071e3');
+      showToast('Cor restaurada para o padrão Apple Blue (Cupertino).');
+    });
+  }
+
+  document.addEventListener('click', (e) => {
+    if (themeDropdown && themeDropdown.style.display === 'flex') {
+      if (themePickerContainer && !themePickerContainer.contains(e.target)) {
+        themeDropdown.style.display = 'none';
+      }
+    }
+  });
+}
+
+// ===================================================================
 //  GLOBAL TOAST SYSTEM
 // ===================================================================
 let toastTimer = null;
@@ -1931,9 +2062,16 @@ const userEmailInput = document.getElementById('userEmail');
 const usersList = document.getElementById('usersList');
 const userStatus = document.getElementById('userStatus');
 
+const accessRequestsBadge = document.getElementById('accessRequestsBadge');
+const accessRequestsList = document.getElementById('accessRequestsList');
+const accessRequestsStatus = document.getElementById('accessRequestsStatus');
+const refreshRequestsBtn = document.getElementById('refreshRequestsBtn');
+
 const adminTabs = document.querySelectorAll('.admin-only');
 const clientOnlyControls = document.querySelectorAll('.client-only');
 const adminOnlyPanels = document.querySelectorAll('.admin-only-panel');
+
+let accessRequestsPollingTimer = null;
 
 function applyRoleVisibility(isAdmin) {
   adminTabs.forEach(tab => { tab.style.display = isAdmin ? 'inline-flex' : 'none'; });
@@ -1941,6 +2079,18 @@ function applyRoleVisibility(isAdmin) {
   clientOnlyControls.forEach(control => { control.style.display = isAdmin ? 'none' : 'inline-flex'; });
   const openAgentPopupBtn = document.getElementById('openAgentPopupBtn');
   if (openAgentPopupBtn) openAgentPopupBtn.style.display = isAdmin ? 'block' : 'none';
+
+  if (isAdmin) {
+    loadAccessRequests();
+    if (!accessRequestsPollingTimer) {
+      accessRequestsPollingTimer = setInterval(loadAccessRequests, 12000);
+    }
+  } else {
+    if (accessRequestsPollingTimer) {
+      clearInterval(accessRequestsPollingTimer);
+      accessRequestsPollingTimer = null;
+    }
+  }
 }
 
 function decodeJwtPayload(token) {
@@ -1982,42 +2132,69 @@ function authenticateUser(email, name = '', picture = '') {
   loadPublicPages();
 }
 
+async function checkUserVerification(email, name = '', picture = '') {
+  const cleanEmail = (email || '').trim().toLowerCase();
+  if (!cleanEmail) return;
+
+  if (loginStatus) {
+    loginStatus.innerHTML = `<span>⏳</span> <div>Verificando permissões de acesso para <strong>${escapeHtml(cleanEmail)}</strong>...</div>`;
+    loginStatus.className = 'mini-status';
+  }
+
+  try {
+    const res = await fetch(getApiUrl('/api/access/verify'), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: cleanEmail, name, picture })
+    });
+
+    if (!res.ok) throw new Error('Falha na resposta do servidor');
+    const data = await res.json();
+
+    if (data.authorized) {
+      authenticateUser(cleanEmail, name, picture);
+      applyRoleVisibility(data.admin);
+      if (data.admin) {
+        loadUsers();
+        loadAccessRequests();
+      }
+      showToast(data.admin ? `✨ Bem-vindo(a), Administrador(a) ${name || ''}!` : `✨ Bem-vindo(a), ${name || cleanEmail}!`);
+    } else {
+      if (loginStatus) {
+        loginStatus.innerHTML = `
+          <div style="display: flex; flex-direction: column; gap: 6px; text-align: left;">
+            <div>🔔 <strong>Pedido de Acesso Registrado</strong></div>
+            <div>O e-mail <strong>${escapeHtml(cleanEmail)}</strong> foi cadastrado e está aguardando aprovação do administrador.</div>
+            <button type="button" id="btnRetryAuth" class="btn-secondary" style="align-self: flex-start; margin-top: 6px; font-size: 0.76rem; padding: 4px 10px;">
+              🔄 Verificar Autorização Novamente
+            </button>
+          </div>
+        `;
+        loginStatus.className = 'mini-status';
+        const retryBtn = document.getElementById('btnRetryAuth');
+        if (retryBtn) {
+          retryBtn.addEventListener('click', () => checkUserVerification(cleanEmail, name, picture));
+        }
+      }
+      showToast(`Pedido de acesso registrado para ${cleanEmail}.`);
+    }
+  } catch (err) {
+    if (loginStatus) {
+      loginStatus.innerHTML = `<div>❌ Erro ao conectar com o backend: ${escapeHtml(err.message)}</div>`;
+      loginStatus.className = 'mini-status error';
+    }
+    showToast('Erro ao validar acesso.');
+  }
+}
+
 if (directLoginForm && directLoginEmail) {
   directLoginForm.addEventListener('submit', async (e) => {
     e.preventDefault();
     const email = directLoginEmail.value.trim().toLowerCase();
     if (!email) return;
-
-    if (loginStatus) {
-      loginStatus.textContent = 'Verificando autorização...';
-      loginStatus.className = 'mini-status';
-    }
     if (directLoginBtn) directLoginBtn.disabled = true;
-
     try {
-      const res = await fetch(getApiUrl('/api/access/verify'), {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email })
-      });
-      const data = await res.json();
-
-      if (data.authorized) {
-        authenticateUser(email);
-        applyRoleVisibility(data.admin);
-        if (data.admin) loadUsers();
-        showToast(data.admin ? `Bem-vindo, Administrador!` : `Bem-vindo à plataforma!`);
-      } else {
-        if (loginStatus) {
-          loginStatus.textContent = `O e-mail "${email}" não está autorizado. Solicite acesso ao administrador.`;
-          loginStatus.className = 'mini-status error';
-        }
-      }
-    } catch (err) {
-      if (loginStatus) {
-        loginStatus.textContent = `Erro ao conectar com o backend: ${err.message}`;
-        loginStatus.className = 'mini-status error';
-      }
+      await checkUserVerification(email);
     } finally {
       if (directLoginBtn) directLoginBtn.disabled = false;
     }
@@ -2025,9 +2202,13 @@ if (directLoginForm && directLoginEmail) {
 }
 
 window.handleGoogleLogin = async function(response) {
+  if (!response || !response.credential) {
+    showToast('Erro: Credencial Google não recebida.');
+    return;
+  }
   const payload = decodeJwtPayload(response.credential);
-  if (!payload) {
-    showToast('Erro ao processar login Google.');
+  if (!payload || !payload.email) {
+    showToast('Erro ao processar token da Conta Google.');
     return;
   }
 
@@ -2035,55 +2216,93 @@ window.handleGoogleLogin = async function(response) {
   const name = payload.name || email;
   const picture = payload.picture || '';
 
-  try {
-    const res = await fetch(getApiUrl('/api/access/verify'), {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email })
-    });
-
-    if (!res.ok) throw new Error('Erro na verificação');
-    const data = await res.json();
-
-    if (data.authorized) {
-      authenticateUser(email, name, picture);
-      applyRoleVisibility(data.admin);
-      if (data.admin) loadUsers();
-      showToast(data.admin ? `Bem-vindo, Administrador ${name}!` : `Bem-vindo, ${name}!`);
-    } else {
-      showToast(`O e-mail ${email} ainda não está autorizado.`);
-    }
-  } catch (err) {
-    console.error('Erro verificando usuário:', err);
-    showToast('Erro ao verificar permissões.');
-  }
+  await checkUserVerification(email, name, picture);
 };
+
+let googleClientId = '800464070591-33nvvitct598mb53dccehl15q8cjm4m9.apps.googleusercontent.com';
+
+async function fetchAuthConfig() {
+  try {
+    const res = await fetch(getApiUrl('/api/auth/config'));
+    if (res.ok) {
+      const data = await res.json();
+      if (data.googleClientId) googleClientId = data.googleClientId;
+    }
+  } catch (ignored) {}
+}
 
 function initializeGoogleSignIn() {
   const button = document.getElementById('googleSignInButton');
-  if (!button || !window.google || !window.google.accounts) return false;
-  window.google.accounts.id.initialize({
-    client_id: '800464070591-33nvvitct598mb53dccehl15q8cjm4m9.apps.googleusercontent.com',
-    callback: window.handleGoogleLogin,
-    auto_select: false,
-    cancel_on_tap_outside: true
-  });
-  window.google.accounts.id.renderButton(button, {
-    type: 'icon',
-    shape: 'circle',
-    theme: 'filled_black',
-    size: 'medium'
-  });
-  return true;
+  const fallbackBtn = document.getElementById('googleFallbackBtn');
+  if (!button || !window.google || !window.google.accounts || !window.google.accounts.id) {
+    if (fallbackBtn) fallbackBtn.style.display = 'inline-flex';
+    return false;
+  }
+
+  try {
+    window.google.accounts.id.initialize({
+      client_id: googleClientId,
+      callback: window.handleGoogleLogin,
+      auto_select: false,
+      cancel_on_tap_outside: true
+    });
+    window.google.accounts.id.renderButton(button, {
+      type: 'standard',
+      shape: 'pill',
+      theme: 'outline',
+      size: 'large',
+      text: 'signin_with',
+      logo_alignment: 'left',
+      locale: 'pt-BR',
+      width: 320
+    });
+    if (fallbackBtn) fallbackBtn.style.display = 'none';
+    return true;
+  } catch (err) {
+    console.warn('Google GSI renderButton fallback ativado:', err);
+    if (fallbackBtn) fallbackBtn.style.display = 'inline-flex';
+    return false;
+  }
 }
 
-window.addEventListener('load', () => {
+// Handler do botão Google Apple Fallback
+const googleFallbackBtn = document.getElementById('googleFallbackBtn');
+if (googleFallbackBtn) {
+  googleFallbackBtn.addEventListener('click', () => {
+    if (window.google?.accounts?.id) {
+      try {
+        window.google.accounts.id.prompt();
+        return;
+      } catch (ignored) {}
+    }
+    const input = document.getElementById('directLoginEmail');
+    if (input) {
+      input.focus();
+      if (loginStatus) {
+        loginStatus.innerHTML = '<div>💡 Digite seu e-mail Google no campo abaixo e clique em <strong>Acessar Workspace</strong>.</div>';
+        loginStatus.className = 'mini-status';
+      }
+    }
+  });
+}
+
+window.addEventListener('load', async () => {
+  initThemePicker();
   initHelpTips();
+  await fetchAuthConfig();
+  
   if (initializeGoogleSignIn()) return;
   let attempts = 0;
   const timer = window.setInterval(() => {
     attempts += 1;
-    if (initializeGoogleSignIn() || attempts >= 20) window.clearInterval(timer);
+    if (initializeGoogleSignIn() || attempts >= 15) {
+      window.clearInterval(timer);
+      const button = document.getElementById('googleSignInButton');
+      const fallbackBtn = document.getElementById('googleFallbackBtn');
+      if (fallbackBtn && (!button || button.childElementCount === 0)) {
+        fallbackBtn.style.display = 'inline-flex';
+      }
+    }
   }, 250);
 });
 
@@ -2114,7 +2333,10 @@ if (savedEmail) {
       if (adminNameEl) adminNameEl.textContent = adminUserName;
       applyRoleVisibility(data.admin);
       loadCustomAgents();
-      if (data.admin) loadUsers();
+      if (data.admin) {
+        loadUsers();
+        loadAccessRequests();
+      }
       loadPublicPages();
     });
 }
@@ -2164,6 +2386,118 @@ async function loadUsers() {
   } catch (e) {
     console.error(e);
   }
+}
+
+// ===================================================================
+//  PEDIDOS DE ACESSO (ACCESS REQUESTS MANAGEMENT)
+// ===================================================================
+async function loadAccessRequests() {
+  if (!adminEmail || !accessRequestsList) return;
+  try {
+    const res = await fetch(getApiUrl(`/api/admin/requests?adminEmail=${encodeURIComponent(adminEmail)}`));
+    if (!res.ok) return;
+    const requests = await res.json();
+
+    // Atualiza a bolinha vermelha indicadora na aba
+    const count = requests.length;
+    if (accessRequestsBadge) {
+      if (count > 0) {
+        accessRequestsBadge.textContent = count;
+        accessRequestsBadge.style.display = 'inline-flex';
+      } else {
+        accessRequestsBadge.style.display = 'none';
+      }
+    }
+
+    if (requests.length === 0) {
+      accessRequestsList.innerHTML = `
+        <div style="padding: 28px; text-align: center; color: var(--text-muted); font-size: 0.88rem; background: rgba(255,255,255,0.02); border-radius: var(--radius-md); border: 1px dashed var(--border-subtle);">
+          ✨ Nenhum pedido de acesso pendente no momento.
+        </div>`;
+      return;
+    }
+
+    accessRequestsList.innerHTML = requests.map(req => {
+      const dateStr = req.createdAt ? new Date(req.createdAt).toLocaleString('pt-BR') : 'Data recente';
+      const displayName = req.name || req.email;
+      return `
+        <div class="request-row" id="req-row-${escapeHtml(req.id)}">
+          <div class="request-info">
+            <strong>👤 ${escapeHtml(displayName)}</strong>
+            <span class="request-email">✉️ ${escapeHtml(req.email)}</span>
+            <span class="request-time">🕒 Solicitado em: ${escapeHtml(dateStr)}</span>
+          </div>
+          <div class="request-actions">
+            <button class="btn-approve-request" data-approve-id="${escapeHtml(req.id)}" data-user-name="${escapeHtml(displayName)}" data-user-email="${escapeHtml(req.email)}" title="Aprovar e conceder acesso imediato">
+              ✔ Aprovar Acesso
+            </button>
+            <button class="btn-reject-request" data-reject-id="${escapeHtml(req.id)}" title="Recusar pedido de acesso">
+              ✖ Recusar
+            </button>
+          </div>
+        </div>
+      `;
+    }).join('');
+
+    // Event listener para botão Aprovar (move para administração)
+    accessRequestsList.querySelectorAll('[data-approve-id]').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        const reqId = btn.dataset.approveId;
+        const uName = btn.dataset.userName;
+        btn.disabled = true;
+        btn.textContent = 'Aprovando...';
+        try {
+          const approveRes = await fetch(getApiUrl(`/api/admin/requests/${encodeURIComponent(reqId)}/approve?adminEmail=${encodeURIComponent(adminEmail)}`), {
+            method: 'POST'
+          });
+          if (!approveRes.ok) throw new Error('Erro ao aprovar.');
+          showToast(`✔ Usuário "${uName}" aprovado e adicionado à Administração!`);
+          await loadAccessRequests();
+          await loadUsers();
+        } catch (err) {
+          showToast(`Erro ao aprovar: ${err.message}`);
+          btn.disabled = false;
+          btn.textContent = '✔ Aprovar Acesso';
+        }
+      });
+    });
+
+    // Event listener para botão Recusar
+    accessRequestsList.querySelectorAll('[data-reject-id]').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        const reqId = btn.dataset.rejectId;
+        if (!confirm('Deseja realmente recusar este pedido de acesso?')) return;
+        btn.disabled = true;
+        btn.textContent = 'Recusando...';
+        try {
+          const rejectRes = await fetch(getApiUrl(`/api/admin/requests/${encodeURIComponent(reqId)}/reject?adminEmail=${encodeURIComponent(adminEmail)}`), {
+            method: 'POST'
+          });
+          if (!rejectRes.ok) throw new Error('Erro ao recusar.');
+          showToast('Pedido de acesso recusado.');
+          await loadAccessRequests();
+        } catch (err) {
+          showToast(`Erro ao recusar: ${err.message}`);
+          btn.disabled = false;
+          btn.textContent = '✖ Recusar';
+        }
+      });
+    });
+
+  } catch (err) {
+    console.error('Erro ao carregar pedidos de acesso:', err);
+  }
+}
+
+if (refreshRequestsBtn) {
+  refreshRequestsBtn.addEventListener('click', async () => {
+    refreshRequestsBtn.disabled = true;
+    refreshRequestsBtn.textContent = '🔄 Atualizando...';
+    await loadAccessRequests();
+    refreshRequestsBtn.disabled = false;
+    refreshRequestsBtn.textContent = '🔄 Atualizar Lista';
+    showToast('Lista de pedidos atualizada.');
+  });
 }
 
 // Shutdown Controls

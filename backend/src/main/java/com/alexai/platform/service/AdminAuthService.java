@@ -1,6 +1,8 @@
 package com.alexai.platform.service;
 
 import org.springframework.stereotype.Service;
+import java.util.Arrays;
+import java.util.List;
 
 /**
  * Serviço para centralizar a lógica de autenticação e verificação de privilégios
@@ -9,16 +11,26 @@ import org.springframework.stereotype.Service;
 @Service
 public class AdminAuthService {
 
+    private static final List<String> DEFAULT_ADMINS = List.of(
+        "asizaguirre@gmail.com",
+        "arquitetossti@gmail.com",
+        "gustavoduarte.21233@gmail.com",
+        "jgabiiz@gmail.com"
+    );
+
     /**
      * Lista de e-mails de administradores autorizados.
-     * Configurável via variável de ambiente ADMIN_EMAILS (separados por vírgula).
+     * Configurável via variável de ambiente ADMIN_EMAILS (separados por vírgula ou ponto e vírgula).
      */
     public String[] getAdminEmails() {
         String emails = System.getenv().getOrDefault("ADMIN_EMAILS", "");
-        if (emails.isEmpty()) {
-            return new String[0];
+        if (emails.isBlank()) {
+            return DEFAULT_ADMINS.toArray(new String[0]);
         }
-        return emails.split(",");
+        return Arrays.stream(emails.split("[,;]"))
+                .map(String::trim)
+                .filter(s -> !s.isEmpty())
+                .toArray(String[]::new);
     }
 
     /**
@@ -26,15 +38,13 @@ public class AdminAuthService {
      */
     public boolean isAdmin(String email) {
         if (email == null || email.isBlank()) return false;
-        String[] admins = getAdminEmails();
+        String cleanEmail = email.trim().toLowerCase();
 
-        if (admins.length == 0) return false;
-
-        for (String admin : admins) {
-            if (admin.trim().equalsIgnoreCase(email.trim())) {
+        for (String admin : getAdminEmails()) {
+            if (admin.equalsIgnoreCase(cleanEmail)) {
                 return true;
             }
         }
-        return false;
+        return DEFAULT_ADMINS.stream().anyMatch(admin -> admin.equalsIgnoreCase(cleanEmail));
     }
 }

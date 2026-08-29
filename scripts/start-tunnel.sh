@@ -7,6 +7,19 @@
 
 set -Eeuo pipefail
 
+# Carrega variáveis do .env (raiz do projeto ou config/.env)
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
+for ENV_FILE in "$PROJECT_ROOT/.env" "$PROJECT_ROOT/config/.env"; do
+  if [[ -f "$ENV_FILE" ]]; then
+    set -a
+    # shellcheck disable=SC1090
+    source "$ENV_FILE"
+    set +a
+    break
+  fi
+done
+
 PORT="${1:-${PORT:-8080}}"
 DOMAIN="${2:-${NGROK_DOMAIN:-stimulus-foam-carport.ngrok-free.dev}}"
 LOG_FILE="/tmp/ngrok.log"
@@ -20,6 +33,12 @@ log()  { printf "${GREEN}[AlEx]${NC} %s\n" "$*"; }
 fail() { printf "${RED}[AlEx] ERRO:${NC} %s\n" "$*" >&2; exit 1; }
 
 command -v ngrok >/dev/null 2>&1 || fail "ngrok não encontrado. Execute ./scripts/setup.sh primeiro."
+
+# Configura o authtoken do ngrok (se definido no .env)
+if [[ -n "${NGROK_AUTHTOKEN:-}" ]]; then
+  ngrok config add-authtoken "$NGROK_AUTHTOKEN" >/dev/null 2>&1 \
+    || log "Aviso: não foi possível salvar o authtoken no ngrok (pode já estar configurado)."
+fi
 
 # Mata tunnel anterior se existir
 pkill -9 -f "ngrok http" 2>/dev/null || true

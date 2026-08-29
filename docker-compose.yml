@@ -10,11 +10,18 @@ services:
       - PORT=8080
       - OLLAMA_URL=${OLLAMA_URL:-http://ollama:11434}
       - OLLAMA_MODEL=${OLLAMA_MODEL:-qwen2.5-coder:7b}
+      - ELASTICSEARCH_URL=${ELASTICSEARCH_URL:-http://elasticsearch:9200}
+      - ELASTICSEARCH_ENABLED=${ELASTICSEARCH_ENABLED:-true}
+      - OLLAMA_WARMUP_ENABLED=${OLLAMA_WARMUP_ENABLED:-true}
+      - ADMIN_EMAILS=${ADMIN_EMAILS:-asizaguirre@gmail.com}
+      - USER_DB_PATH=${USER_DB_PATH:-/IA/workspace/alex-platform-v2/db/users.json}
     volumes:
       - ./db:/IA/workspace/alex-platform-v2/db
       - ./rag:/IA/workspace/alex-platform-v2/rag
     depends_on:
       - ollama
+      - elasticsearch
+    restart: unless-stopped
 
   ollama:
     image: ollama/ollama:latest
@@ -26,5 +33,42 @@ services:
     restart: unless-stopped
     command: ["serve"]
 
+  # Baixa o modelo automaticamente no primeiro arranque (deixa o Ollama sempre a postos)
+  ollama-init:
+    image: ollama/ollama:latest
+    volumes:
+      - ollama-data:/root/.ollama
+    environment:
+      - OLLAMA_HOST=http://ollama:11434
+      - OLLAMA_MODEL=${OLLAMA_MODEL:-qwen2.5-coder:7b}
+    depends_on:
+      - ollama
+    entrypoint: ["/bin/sh", "-c"]
+    command: >
+      "echo '[ollama-init] Garantindo que o modelo $$OLLAMA_MODEL esteja disponível...' &&
+       sleep 5 &&
+       ollama pull $$OLLAMA_MODEL &&
+       echo '[ollama-init] Modelo pronto para uso.'"
+    restart: "no"
+
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.15.3
+    container_name: elasticsearch
+    ports:
+      - "9200:9200"
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+      - ES_JAVA_OPTS=-Xms512m -Xmx512m
+    volumes:
+      - elasticsearch-data:/usr/share/elasticsearch/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "curl -s http://localhost:9200/_cluster/health || exit 1"]
+      interval: 15s
+      timeout: 10s
+      retries: 10
+
 volumes:
   ollama-data:
+  elasticsearch-data:
