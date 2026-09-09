@@ -2639,6 +2639,119 @@ textarea {
   animation: appleFadeIn 0.2s ease;
 }
 
+.agent-modal {
+  width: min(720px, calc(100vw - 28px));
+  max-height: min(820px, calc(100vh - 28px));
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.agent-modal-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.agent-description-btn {
+  display: block;
+  margin-top: 6px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--color-alex);
+  font-size: 0.76rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.agent-modal-control {
+  padding: 7px 10px;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  background: var(--bg-input);
+  color: var(--text-secondary);
+  font-size: 0.72rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: var(--transition-fast);
+}
+
+.agent-modal-control:hover {
+  border-color: var(--color-alex);
+  color: var(--color-alex);
+  background: rgba(0, 113, 227, 0.08);
+}
+
+.agent-modal-settings {
+  display: grid;
+  gap: 10px;
+  max-height: 260px;
+  overflow-y: auto;
+  margin: 0 0 10px;
+  padding: 12px;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  background: rgba(0, 113, 227, 0.045);
+}
+
+.agent-modal-settings[hidden] {
+  display: none;
+}
+
+.agent-modal-settings label {
+  display: grid;
+  gap: 5px;
+  color: var(--text-secondary);
+  font-size: 0.76rem;
+  font-weight: 700;
+}
+
+#agentModalRoleInput {
+  min-height: 130px;
+  max-height: 210px;
+  overflow-y: auto;
+  line-height: 1.5;
+}
+
+.agent-modal-settings-actions {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.agent-modal-chat {
+  min-height: 220px;
+  max-height: min(440px, 48vh);
+  overflow-y: auto;
+}
+
+.agent-modal-input-area {
+  flex-shrink: 0;
+}
+
+@media (max-width: 600px) {
+  .agent-modal {
+    width: calc(100vw - 20px);
+    max-height: calc(100vh - 20px);
+  }
+
+  .agent-modal-header {
+    align-items: flex-start;
+  }
+
+  .agent-modal-header-actions {
+    flex-wrap: wrap;
+    justify-content: flex-end;
+  }
+
+  .agent-modal-chat {
+    max-height: 38vh;
+  }
+}
+
 .custom-agents-modal-overlay {
   position: fixed;
   inset: 0;

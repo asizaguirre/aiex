@@ -88,4 +88,32 @@ public class CustomAgentController {
                     .body(Map.of("status", "NOT_FOUND", "message", "Agente não encontrado."));
         }
     }
+
+    @PutMapping("/{id}")
+    public ResponseEntity<?> updateCustomAgent(@PathVariable String id, @RequestBody Map<String, String> body) throws IOException {
+        String email = body.getOrDefault("email", "").trim().toLowerCase();
+        String name = body.getOrDefault("name", "").trim();
+        String role = body.getOrDefault("role", "").trim();
+        if (name.isBlank() || role.isBlank()) {
+            return ResponseEntity.badRequest().body(Map.of("message", "Informe o nome e o comportamento do agente."));
+        }
+
+        List<Map<String, Object>> agents = customAgentService.readAgents();
+        Map<String, Object> target = agents.stream()
+                .filter(agent -> id.equals(String.valueOf(agent.get("id"))))
+                .findFirst().orElse(null);
+        if (target == null) {
+            return ResponseEntity.notFound().build();
+        }
+        if (!adminAuthService.isAdmin(email) && !email.equalsIgnoreCase(String.valueOf(target.get("ownerEmail")))) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body(Map.of("message", "Apenas o proprietário ou um administrador pode editar este agente."));
+        }
+
+        target.put("name", name);
+        target.put("role", role);
+        target.put("updatedAt", System.currentTimeMillis());
+        customAgentService.writeAgents(agents);
+        return ResponseEntity.ok(target);
+    }
 }

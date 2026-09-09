@@ -193,9 +193,9 @@ let toastTimer = null;
 window.showToast = function(message) {
   const toast = document.getElementById('toast');
   if (!toast) return;
-  
+
   if (toastTimer) clearTimeout(toastTimer);
-  
+
   toast.innerHTML = `<span>✨</span> <div>${escapeHtml(message)}</div>`;
   toast.classList.add('show');
   
@@ -519,6 +519,15 @@ const agentModalCloseBtn = document.getElementById('agentModalCloseBtn');
 const agentModalTitle = document.getElementById('agentModalTitle');
 const agentModalRole = document.getElementById('agentModalRole');
 const agentModalWelcomeName = document.getElementById('agentModalWelcomeName');
+const agentModalDescriptionBtn = document.getElementById('agentModalDescriptionBtn');
+const agentModalSettings = document.getElementById('agentModalSettings');
+const agentModalNameInput = document.getElementById('agentModalNameInput');
+const agentModalRoleInput = document.getElementById('agentModalRoleInput');
+const agentModalSaveBtn = document.getElementById('agentModalSaveBtn');
+const agentModalResetBtn = document.getElementById('agentModalResetBtn');
+const agentModalNewBtn = document.getElementById('agentModalNewBtn');
+const agentModalVoiceBtn = document.getElementById('agentModalVoiceBtn');
+const agentModalSettingsStatus = document.getElementById('agentModalSettingsStatus');
 const agentModalChat = document.getElementById('agentModalChat');
 const agentModalInput = document.getElementById('agentModalInput');
 const agentModalSendBtn = document.getElementById('agentModalSendBtn');
@@ -526,6 +535,8 @@ const agentModalMicBtn = document.getElementById('agentModalMicBtn');
 const agentModalSpeakerBtn = document.getElementById('agentModalSpeakerBtn');
 
 let currentCustomAgent = null;
+let currentCustomAgentId = null;
+let currentCustomAgentRole = '';
 let isModalAudioEnabled = true;
 
 const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -566,18 +577,31 @@ if (SpeechRecognition && agentModalMicBtn) {
   agentModalMicBtn.style.display = 'none';
 }
 
-function openAgentModal(name, role) {
-  currentCustomAgent = name;
-  agentModalTitle.textContent = name;
-  agentModalRole.textContent = role;
-  agentModalWelcomeName.textContent = name;
-  
+function resetAgentConversation() {
+  if (!agentModalChat) return;
   agentModalChat.innerHTML = `
     <div class="chat-bubble assistant">
-      <strong>${escapeHtml(name.toUpperCase())}</strong>
-      <div>Olá! Eu sou o <strong>${escapeHtml(name)}</strong>. Como posso ajudar você agora?</div>
+      <strong>${escapeHtml(String(currentCustomAgent || '').toUpperCase())}</strong>
+      <div>Olá! Eu sou o <strong>${escapeHtml(currentCustomAgent || 'Agente')}</strong>. Como posso ajudar você agora?</div>
     </div>
   `;
+  if (agentModalInput) agentModalInput.value = '';
+  if (agentModalSettingsStatus) agentModalSettingsStatus.textContent = '';
+  if (window.speechSynthesis) window.speechSynthesis.cancel();
+}
+
+function openAgentModal(name, role, id) {
+  currentCustomAgent = name;
+  currentCustomAgentId = id || null;
+  currentCustomAgentRole = role || '';
+  agentModalTitle.textContent = name;
+  agentModalRole.textContent = 'Agente pronto para conversar';
+  agentModalWelcomeName.textContent = name;
+  if (agentModalNameInput) agentModalNameInput.value = name || '';
+  if (agentModalRoleInput) agentModalRoleInput.value = role || '';
+  if (agentModalSettings) agentModalSettings.hidden = true;
+  if (agentModalDescriptionBtn) agentModalDescriptionBtn.textContent = '▾ Ver comportamento';
+  resetAgentConversation();
   agentModalInput.value = '';
   agentModal.style.display = 'flex';
 }
@@ -588,6 +612,66 @@ function closeAgentModal() {
 }
 
 if (agentModalCloseBtn) agentModalCloseBtn.addEventListener('click', closeAgentModal);
+if (agentModalDescriptionBtn) {
+  agentModalDescriptionBtn.addEventListener('click', () => {
+    if (!agentModalSettings) return;
+    agentModalSettings.hidden = !agentModalSettings.hidden;
+    agentModalDescriptionBtn.textContent = agentModalSettings.hidden ? '▾ Ver comportamento' : '▴ Ocultar comportamento';
+  });
+}
+if (agentModalNewBtn) agentModalNewBtn.addEventListener('click', () => {
+  resetAgentConversation();
+  showToast('Nova conversa iniciada.');
+});
+if (agentModalResetBtn) agentModalResetBtn.addEventListener('click', () => {
+  if (window.confirm('Reiniciar a conversa atual?')) {
+    resetAgentConversation();
+    showToast('Conversa reiniciada.');
+  }
+});
+if (agentModalVoiceBtn) agentModalVoiceBtn.addEventListener('click', () => {
+  const voices = availablePortugueseVoices();
+  if (!voices.length) {
+    showToast('Nenhuma voz em português está disponível neste dispositivo.');
+    return;
+  }
+  const currentIndex = voices.findIndex(voice => voice.name === selectedVoiceName);
+  selectedVoiceName = voices[(currentIndex + 1) % voices.length].name;
+  updateVoiceButton();
+  agentModalVoiceBtn.textContent = `🎙 ${selectedVoiceName.replace(/\s*\(.*?\)/, '').slice(0, 18)}`;
+  showToast(`Voz selecionada: ${selectedVoiceName}`);
+});
+if (agentModalSaveBtn) agentModalSaveBtn.addEventListener('click', async () => {
+  const email = adminEmail || sessionStorage.getItem('alexUserEmail');
+  const name = agentModalNameInput?.value.trim();
+  const role = agentModalRoleInput?.value.trim();
+  if (!currentCustomAgentId || !email || !name || !role) {
+    if (agentModalSettingsStatus) agentModalSettingsStatus.textContent = 'Informe nome e comportamento.';
+    return;
+  }
+  agentModalSaveBtn.disabled = true;
+  if (agentModalSettingsStatus) agentModalSettingsStatus.textContent = 'Salvando comportamento...';
+  try {
+    const response = await fetch(getApiUrl(`/api/agents/custom/${encodeURIComponent(currentCustomAgentId)}`), {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, name, role })
+    });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.message || 'Não foi possível salvar.');
+    currentCustomAgent = data.name;
+    currentCustomAgentRole = data.role;
+    agentModalTitle.textContent = data.name;
+    agentModalWelcomeName.textContent = data.name;
+    if (agentModalSettingsStatus) agentModalSettingsStatus.textContent = 'Comportamento salvo.';
+    loadCustomAgents();
+    showToast('Agente atualizado com sucesso.');
+  } catch (error) {
+    if (agentModalSettingsStatus) agentModalSettingsStatus.textContent = error.message;
+  } finally {
+    agentModalSaveBtn.disabled = false;
+  }
+});
 if (agentModal) {
   agentModal.addEventListener('click', (e) => {
     if (e.target === agentModal) closeAgentModal();
@@ -1195,13 +1279,13 @@ function renderCustomAgents(agents) {
       </div>
     `;
 
-    item.querySelector('.btn-open-chat').addEventListener('click', () => openAgentModal(agent.name, agent.role));
+    item.querySelector('.btn-open-chat').addEventListener('click', () => openAgentModal(agent.name, agent.role, agent.id));
     item.querySelector('.btn-remove-agent').addEventListener('click', () => deleteCustomAgent(agent.id));
 
     if (customAgentsList) customAgentsList.appendChild(item);
     if (agentsTabList) {
       const tabClone = item.cloneNode(true);
-      tabClone.querySelector('.btn-open-chat').addEventListener('click', () => openAgentModal(agent.name, agent.role));
+      tabClone.querySelector('.btn-open-chat').addEventListener('click', () => openAgentModal(agent.name, agent.role, agent.id));
       tabClone.querySelector('.btn-remove-agent').addEventListener('click', () => deleteCustomAgent(agent.id));
       agentsTabList.appendChild(tabClone);
     }
@@ -1217,7 +1301,7 @@ function renderCustomAgents(agents) {
       `;
       popupItem.querySelector('button').addEventListener('click', () => {
         closeCustomAgentsModal();
-        openAgentModal(agent.name, agent.role);
+        openAgentModal(agent.name, agent.role, agent.id);
       });
       customAgentsPopupList.appendChild(popupItem);
     }

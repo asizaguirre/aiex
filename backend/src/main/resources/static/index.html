@@ -868,9 +868,26 @@
       <div class="agent-modal-header">
         <div class="agent-modal-info">
           <h2 id="agentModalTitle">Nome do Agente</h2>
-          <span id="agentModalRole">Função do Agente</span>
+          <button id="agentModalDescriptionBtn" class="agent-description-btn" type="button">▾ Ver comportamento</button>
         </div>
-        <button id="agentModalCloseBtn" class="btn-close-modal" title="Fechar">✖</button>
+        <div class="agent-modal-header-actions">
+          <button id="agentModalNewBtn" class="agent-modal-control" type="button" title="Nova conversa">＋ Nova</button>
+          <button id="agentModalCloseBtn" class="btn-close-modal" title="Fechar">✖</button>
+        </div>
+      </div>
+
+      <div id="agentModalSettings" class="agent-modal-settings" hidden>
+        <label>Nome do agente
+          <input id="agentModalNameInput" type="text" />
+        </label>
+        <label>Comportamento e instruções
+          <textarea id="agentModalRoleInput" rows="8"></textarea>
+        </label>
+        <div class="agent-modal-settings-actions">
+          <button id="agentModalResetBtn" class="agent-modal-control" type="button">↺ Reiniciar conversa</button>
+          <button id="agentModalSaveBtn" class="btn-primary" type="button">Salvar alterações</button>
+        </div>
+        <div id="agentModalSettingsStatus" class="mini-status"></div>
       </div>
       
       <div class="chat-history agent-modal-chat" id="agentModalChat">
@@ -884,6 +901,7 @@
         <div class="agent-modal-actions">
           <button id="agentModalMicBtn" class="btn-icon" title="Falar por voz (Microfone)">🎙️</button>
           <button id="agentModalSpeakerBtn" class="btn-icon active" title="Ativar/Desativar Resposta em Áudio">🔊</button>
+          <button id="agentModalVoiceBtn" class="agent-modal-control" type="button" title="Alternar voz">🎙 Voz</button>
           <button id="agentModalSendBtn" class="btn-primary" type="button">Enviar</button>
         </div>
       </div>
