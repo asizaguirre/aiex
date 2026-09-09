@@ -1140,6 +1140,12 @@ const publicPagesList = document.getElementById('publicPagesList');
 const publishPageBtn = document.getElementById('publishPageBtn');
 const cancelPageEditBtn = document.getElementById('cancelPageEditBtn');
 const btnOpenNewPageEditor = document.getElementById('btnOpenNewPageEditor');
+const btnOpenBuilderFromDesk = document.getElementById('btnOpenBuilderFromDesk');
+const builderToolButtons = document.querySelectorAll('[data-builder-mode]');
+const openDocumentToolsBtn = document.getElementById('openDocumentToolsBtn');
+const closeDocumentToolsBtn = document.getElementById('closeDocumentToolsBtn');
+const documentToolsBackdrop = document.getElementById('documentToolsBackdrop');
+const documentToolActions = document.querySelectorAll('[data-popup-action]');
 
 // Studio Elements
 const pageEditorTab = document.getElementById('pageEditorTab');
@@ -1165,6 +1171,9 @@ const mediaUploadInput = document.getElementById('mediaUploadInput');
 const btnAddYoutube = document.getElementById('btnAddYoutube');
 const btnAddWhatsapp = document.getElementById('btnAddWhatsapp');
 const btnAddButton = document.getElementById('btnAddButton');
+const btnAddPricingTable = document.getElementById('btnAddPricingTable');
+const btnAddPageChatbot = document.getElementById('btnAddPageChatbot');
+const visualBlockStatus = document.getElementById('visualBlockStatus');
 const mediaGalleryContainer = document.getElementById('mediaGalleryContainer');
 const mediaGalleryList = document.getElementById('mediaGalleryList');
 const mediaUploadProgress = document.getElementById('mediaUploadProgress');
@@ -1195,6 +1204,88 @@ let lastAiGeneratedPageContent = '';
 let editingStudioSlug = null;
 let editingPageSlug = null;
 
+function openDocumentTools() {
+  if (documentToolsBackdrop) documentToolsBackdrop.hidden = false;
+}
+
+function closeDocumentTools() {
+  if (documentToolsBackdrop) documentToolsBackdrop.hidden = true;
+}
+
+if (openDocumentToolsBtn) openDocumentToolsBtn.addEventListener('click', openDocumentTools);
+if (closeDocumentToolsBtn) closeDocumentToolsBtn.addEventListener('click', closeDocumentTools);
+if (documentToolsBackdrop) documentToolsBackdrop.addEventListener('click', event => {
+  if (event.target === documentToolsBackdrop) closeDocumentTools();
+});
+
+document.addEventListener('keydown', event => {
+  if (event.key === 'Escape' && documentToolsBackdrop && !documentToolsBackdrop.hidden) closeDocumentTools();
+});
+
+documentToolActions.forEach(action => {
+  action.addEventListener('click', () => {
+    const type = action.dataset.popupAction;
+    closeDocumentTools();
+    if (type === 'heading') insertTextAtCursor(editorPageContent, '\n\n# Novo título\n\n');
+    if (type === 'subheading') insertTextAtCursor(editorPageContent, '\n\n## Nova seção\n\n');
+    if (type === 'paragraph') insertTextAtCursor(editorPageContent, '\n\nEscreva aqui o conteúdo desta seção.\n\n');
+    if (type === 'divider') insertTextAtCursor(editorPageContent, '\n\n---\n\n');
+    if (type === 'pricing' && btnAddPricingTable) btnAddPricingTable.click();
+    if (type === 'chatbot' && btnAddPageChatbot) btnAddPageChatbot.click();
+    if (type === 'image' && mediaUploadInput) mediaUploadInput.click();
+    if (type === 'template' && templateSelect) templateSelect.focus();
+    if (type === 'color') {
+      const color = prompt('Cor de destaque em hexadecimal:', '#0071e3');
+      if (color && /^#[0-9a-f]{6}$/i.test(color)) insertTextAtCursor(editorPageContent, `\n\n[color:${color}]Seção destacada[/color]\n\n`);
+    }
+  });
+});
+
+function openPageEditor(slug = '', mode = 'form') {
+  const email = adminEmail || sessionStorage.getItem('alexUserEmail');
+  if (!pageEditorTab || !email) return;
+  const showEditor = () => {
+    activateWorkspaceTab('pageEditorTab');
+    editingStudioSlug = slug || null;
+    editingPageSlug = slug || null;
+    if (editorStatus) editorStatus.textContent = slug ? 'Página carregada para edição.' : 'Novo rascunho pronto.';
+    if (pageEditorHeading) pageEditorHeading.textContent = slug ? 'Editando sua página pública' : 'Criando uma nova página pública';
+    setEditorMode(mode);
+    fetchMediaGallery();
+    updateStudioPreview();
+  };
+
+  if (!slug) {
+    if (editorPageSlug) editorPageSlug.value = '';
+    if (editorPageTitle) editorPageTitle.value = '';
+    if (editorPageContent) editorPageContent.value = '';
+    showEditor();
+    return;
+  }
+
+  fetch(getApiUrl(`/api/pages/data/${encodeURIComponent(slug)}?email=${encodeURIComponent(email)}`))
+    .then(response => response.ok ? response.json() : response.json().then(data => Promise.reject(new Error(data.message || 'Não foi possível carregar a página.'))))
+    .then(page => {
+      if (editorPageSlug) editorPageSlug.value = page.slug || '';
+      if (editorPageTitle) editorPageTitle.value = page.title || '';
+      if (editorPageContent) editorPageContent.value = page.content || '';
+      showEditor();
+    })
+    .catch(error => showToast(`Erro ao abrir página: ${error.message}`));
+}
+
+const pageEditorHeading = document.getElementById('pageEditorHeading');
+
+if (btnOpenBuilderFromDesk) btnOpenBuilderFromDesk.addEventListener('click', () => openPageEditor('', 'form'));
+builderToolButtons.forEach(button => {
+  button.addEventListener('click', () => {
+    builderToolButtons.forEach(item => item.classList.remove('active'));
+    button.classList.add('active');
+    openPageEditor('', 'form');
+    window.setTimeout(openDocumentTools, 0);
+  });
+});
+
 // Markdown parser helper for rich live preview
 function parseMarkdownToHtml(md) {
   if (!md) return '<p style="color: var(--text-muted); font-style: italic;">Digite o conteúdo da página ou selecione um modelo na combo box acima para começar...</p>';
@@ -1214,6 +1305,20 @@ function parseMarkdownToHtml(md) {
 
   // Button CTA: [button:TEXTO](URL)
   html = html.replace(/\[button:(.*?)\]\((.*?)\)/gim, '<div style="margin: 16px 0;"><a href="$2" target="_blank" rel="noopener" class="btn-cta">$1 ↗</a></div>');
+
+  // Visual pricing table block
+  html = html.replace(/\[pricing\]\s*([\s\S]*?)\s*\[\/pricing\]/gim, (_, block) => {
+    const rows = block.trim().split('\n').filter(Boolean).map(row => row.split('|').map(cell => cell.trim()));
+    if (rows.length < 2) return '';
+    const headers = rows[0];
+    return `<div class="visual-pricing-table"><div class="pricing-head">${headers.map(cell => `<span>${cell}</span>`).join('')}</div>${rows.slice(1).map(row => `<div class="pricing-row">${headers.map((_, index) => `<span>${row[index] || ''}</span>`).join('')}</div>`).join('')}</div>`;
+  });
+
+  // Page chatbot block (preview-only shell; public render connects it)
+  html = html.replace(/\[chatbot:(.*?)\]\((.*?)\)/gim, '<div class="page-chatbot"><strong>◌ $1</strong><span>$2</span><div class="chatbot-preview-input">Pergunte sobre esta página...</div></div>');
+
+  // Highlighted section with a user-selected accent color
+  html = html.replace(/\[color:(#[0-9a-f]{6})\]([\s\S]*?)\[\/color\]/gim, '<div style="padding:16px;border-left:4px solid $1;background:rgba(0,113,227,.06);border-radius:0 10px 10px 0;">$2</div>');
 
   // Generic Markdown links: [TEXTO](URL)
   html = html.replace(/\[(.*?)\]\((.*?)\)/gim, '<a href="$2" target="_blank" rel="noopener" style="color: var(--color-alex); font-weight: 600;">$1</a>');
@@ -1242,7 +1347,7 @@ function parseMarkdownToHtml(md) {
   html = html.split('\n\n').map(paragraph => {
     const trimmed = paragraph.trim();
     if (!trimmed) return '';
-    if (trimmed.startsWith('<h') || trimmed.startsWith('<ul') || trimmed.startsWith('<div') || trimmed.startsWith('<blockquote') || trimmed.startsWith('<hr')) {
+    if (trimmed.startsWith('<h') || trimmed.startsWith('<ul') || trimmed.startsWith('<div') || trimmed.startsWith('<table') || trimmed.startsWith('<blockquote') || trimmed.startsWith('<hr')) {
       return trimmed;
     }
     return `<p>${trimmed.replace(/\n/g, '<br>')}</p>`;
@@ -1343,6 +1448,50 @@ if (btnModeCopilot) btnModeCopilot.addEventListener('click', () => setEditorMode
 if (btnOpenNewPageEditor) {
   btnOpenNewPageEditor.addEventListener('click', () => {
     openPageEditor('');
+  });
+}
+
+if (closePageEditorBtn) {
+  closePageEditorBtn.addEventListener('click', () => {
+    activateWorkspaceTab('publishTab');
+    loadPublicPages();
+  });
+}
+
+if (pageEditorForm) {
+  pageEditorForm.addEventListener('submit', async event => {
+    event.preventDefault();
+    const email = adminEmail || sessionStorage.getItem('alexUserEmail');
+    const originalSlug = editingStudioSlug || editingPageSlug;
+    const slug = editorPageSlug.value.trim().toLowerCase();
+    const title = editorPageTitle.value.trim();
+    const content = editorPageContent.value.trim();
+    if (!email || !slug || !title || !content) {
+      if (editorStatus) editorStatus.textContent = 'Preencha slug, título e conteúdo antes de publicar.';
+      return;
+    }
+    if (editorStatus) editorStatus.textContent = originalSlug ? 'Salvando alterações...' : 'Publicando página...';
+    const endpoint = originalSlug
+      ? `/api/pages/${encodeURIComponent(originalSlug)}?email=${encodeURIComponent(email)}`
+      : `/api/pages?email=${encodeURIComponent(email)}`;
+    try {
+      const response = await fetch(getApiUrl(endpoint), {
+        method: originalSlug ? 'PUT' : 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ slug, title, content })
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.message || 'Não foi possível salvar a página.');
+      editingStudioSlug = data.slug;
+      editingPageSlug = data.slug;
+      if (editorStatus) editorStatus.innerHTML = `Publicado: <a href="${escapeHtml(data.publicUrl)}" target="_blank" rel="noopener">${escapeHtml(data.publicUrl)}</a>`;
+      updateStudioPreview();
+      loadPublicPages();
+      showToast('Página publicada com sucesso.');
+    } catch (error) {
+      if (editorStatus) editorStatus.textContent = error.message;
+      editorStatus.className = 'mini-status error';
+    }
   });
 }
 
@@ -1452,6 +1601,33 @@ if (btnAddButton) {
     if (text && link) {
       insertTextAtCursor(editorPageContent, `\n\n[button:${text}](${link})\n\n`);
     }
+  });
+}
+
+if (btnAddPricingTable) {
+  btnAddPricingTable.addEventListener('click', () => {
+    const rows = [];
+    for (let index = 1; index <= 3; index += 1) {
+      const name = prompt(`Produto ou plano ${index}:`, index === 1 ? 'Plano Essencial' : '');
+      if (!name) break;
+      const price = prompt(`Preço de ${name}:`, 'R$ 0,00');
+      const description = prompt(`Descrição curta de ${name}:`, 'Inclui os principais benefícios');
+      rows.push(`${name.replace(/[|\n]/g, ' ')} | ${(description || '').replace(/[|\n]/g, ' ')} | ${(price || '').replace(/[|\n]/g, ' ')}`);
+    }
+    if (rows.length) {
+      insertTextAtCursor(editorPageContent, `\n\n[pricing]\nProduto | Descrição | Preço\n${rows.join('\n')}\n[/pricing]\n\n`);
+      if (visualBlockStatus) visualBlockStatus.textContent = 'tabela adicionada';
+    }
+  });
+}
+
+if (btnAddPageChatbot) {
+  btnAddPageChatbot.addEventListener('click', () => {
+    const name = prompt('Nome do agente no chatbot:', 'Assistente de vendas');
+    if (!name) return;
+    const instructions = prompt('Como o agente deve ajudar os visitantes?', 'Responda dúvidas sobre produtos, preços e formas de contato com clareza.');
+    insertTextAtCursor(editorPageContent, `\n\n[chatbot:${name.replace(/[\]\n]/g, ' ')}](${(instructions || '').replace(/[)\n]/g, ' ')})\n\n`);
+    if (visualBlockStatus) visualBlockStatus.textContent = 'chatbot adicionado';
   });
 }
 
@@ -2048,6 +2224,7 @@ const adminLoginArea = document.getElementById('adminLoginArea');
 const adminPanel = document.getElementById('adminPanel');
 const adminAvatar = document.getElementById('adminAvatar');
 const adminNameEl = document.getElementById('adminName');
+const roleBadge = document.getElementById('roleBadge');
 const shutdownBtn = document.getElementById('shutdownBtn');
 const shutdownModal = document.getElementById('shutdownModal');
 const shutdownCancel = document.getElementById('shutdownCancel');
@@ -2070,13 +2247,34 @@ const refreshRequestsBtn = document.getElementById('refreshRequestsBtn');
 const adminTabs = document.querySelectorAll('.admin-only');
 const clientOnlyControls = document.querySelectorAll('.client-only');
 const adminOnlyPanels = document.querySelectorAll('.admin-only-panel');
+const clientWorkspaceElements = document.querySelectorAll('.client-workspace-only');
+const adminWorkspaceElements = document.querySelectorAll('.admin-workspace-only');
 
 let accessRequestsPollingTimer = null;
 
+function activateWorkspaceTab(targetId) {
+  document.querySelectorAll('.tab-btn').forEach(button => button.classList.toggle('active', button.getAttribute('data-target') === targetId));
+  document.querySelectorAll('.tab-content').forEach(content => {
+    const isTarget = content.id === targetId;
+    content.classList.toggle('active', isTarget);
+    content.style.display = isTarget ? 'flex' : 'none';
+  });
+}
+
 function applyRoleVisibility(isAdmin) {
+  document.body.classList.toggle('admin-mode', isAdmin);
+  document.body.classList.toggle('client-mode', !isAdmin);
+  clientWorkspaceElements.forEach(element => element.classList.toggle('workspace-hidden', isAdmin));
+  adminWorkspaceElements.forEach(element => element.classList.toggle('workspace-hidden', !isAdmin));
   adminTabs.forEach(tab => { tab.style.display = isAdmin ? 'inline-flex' : 'none'; });
   adminOnlyPanels.forEach(panel => { panel.style.display = isAdmin ? 'flex' : 'none'; });
   clientOnlyControls.forEach(control => { control.style.display = isAdmin ? 'none' : 'inline-flex'; });
+  if (roleBadge) {
+    roleBadge.textContent = isAdmin ? 'Administração do sistema' : 'Workspace do cliente';
+    roleBadge.classList.toggle('is-admin', isAdmin);
+  }
+  const defaultTab = document.querySelector(`[data-target="${isAdmin ? 'adminTab' : 'overviewTab'}"]`);
+  if (defaultTab) activateWorkspaceTab(defaultTab.getAttribute('data-target'));
   const openAgentPopupBtn = document.getElementById('openAgentPopupBtn');
   if (openAgentPopupBtn) openAgentPopupBtn.style.display = isAdmin ? 'block' : 'none';
 
@@ -2546,21 +2744,8 @@ const tabContents = document.querySelectorAll(".tab-content");
 
 tabBtns.forEach(btn => {
   btn.addEventListener("click", () => {
-    tabBtns.forEach(b => b.classList.remove("active"));
-    tabContents.forEach(c => {
-      c.classList.remove("active");
-      c.style.display = "none";
-    });
-
-    btn.classList.add("active");
     const targetId = btn.getAttribute("data-target");
-    if (targetId) {
-      const targetEl = document.getElementById(targetId);
-      if (targetEl) {
-        targetEl.classList.add("active");
-        targetEl.style.display = "flex";
-      }
-    }
+    if (targetId) activateWorkspaceTab(targetId);
   });
 });
 

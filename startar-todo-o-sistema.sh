@@ -59,6 +59,20 @@ banner() {
 }
 
 command_exists() { command -v "$1" >/dev/null 2>&1; }
+configure_java_runtime() {
+  local candidate major
+  for candidate in "${JAVA_HOME:-}" "$HOME"/.jdk/jdk-25* /usr/lib/jvm/*25*; do
+    [[ -x "$candidate/bin/java" ]] || continue
+    major=$("$candidate/bin/java" -version 2>&1 | sed -n 's/.*version "\([0-9]*\).*/\1/p' | head -1)
+    if [[ "$major" == "25" ]]; then
+      export JAVA_HOME="$candidate"
+      export PATH="$JAVA_HOME/bin:$PATH"
+      return 0
+    fi
+  done
+  log_err "Java 25 não encontrado. Configure JAVA_HOME para um JDK 25 antes de iniciar a plataforma."
+  return 1
+}
 
 # Sudo helper
 run_sudo() {
@@ -83,16 +97,16 @@ install_dependencies() {
   if ! command_exists git; then pkgs_to_install+=("git"); need_apt=true; fi
   if ! command_exists unzip; then pkgs_to_install+=("unzip"); need_apt=true; fi
 
-  # Java 17+ ou 21
+  # Java 25+
   if command_exists java; then
     local jv
     jv=$(java -version 2>&1 | head -1 | grep -oP '\d+' | head -1 || echo "0")
-    if (( jv < 17 )); then
-      pkgs_to_install+=("openjdk-21-jdk")
+    if (( jv < 25 )); then
+      pkgs_to_install+=("openjdk-25-jdk")
       need_apt=true
     fi
   else
-    pkgs_to_install+=("openjdk-21-jdk")
+    pkgs_to_install+=("openjdk-25-jdk")
     need_apt=true
   fi
 
@@ -167,6 +181,7 @@ start_ollama_service() {
 # ─── 3. BUILD E INICIALIZAÇÃO DO BACKEND SPRING BOOT ────────────────────────
 start_backend_service() {
   log_step "Preparando backend Spring Boot (AlEx Platform v2)..."
+  configure_java_runtime
 
   mkdir -p "$ROOT_DIR/db/public_media" "$ROOT_DIR/rag/documents" "$ROOT_DIR/rag/vectorstore"
 

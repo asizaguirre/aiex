@@ -59,20 +59,20 @@ install_if_missing curl curl
 install_if_missing unzip unzip
 install_if_missing jq jq
 
-# ─── Java 21 ──────────────────────────────────
+# ─── Java 25 ──────────────────────────────────
 if command -v java >/dev/null 2>&1; then
   JAVA_VER=$(java -version 2>&1 | head -1 | grep -oP '\d+' | head -1)
-  if [[ "$JAVA_VER" -ge 17 ]]; then
+  if [[ "$JAVA_VER" -ge 25 ]]; then
     skipped+=("java($JAVA_VER)")
   else
-    log "Java $JAVA_VER encontrado, mas Java 17+ é necessário. Instalando..."
-    $SUDO_CMD apt-get install -y -qq openjdk-21-jdk >/dev/null 2>&1
-    installed+=("java-21")
+    log "Java $JAVA_VER encontrado, mas Java 25+ é necessário. Instalando..."
+    $SUDO_CMD apt-get install -y -qq openjdk-25-jdk >/dev/null 2>&1
+    installed+=("java-25")
   fi
 else
-  log "Instalando OpenJDK 21..."
-  $SUDO_CMD apt-get install -y -qq openjdk-21-jdk >/dev/null 2>&1
-  installed+=("java-21")
+  log "Instalando OpenJDK 25..."
+  $SUDO_CMD apt-get install -y -qq openjdk-25-jdk >/dev/null 2>&1
+  installed+=("java-25")
 fi
 
 # ─── Docker ───────────────────────────────────

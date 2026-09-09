@@ -77,7 +77,10 @@
         <div id="adminPanel" class="admin-panel" style="display: none;">
           <div class="admin-info">
             <img id="adminAvatar" class="admin-avatar" src="" alt="Avatar do Usuário" />
-            <span id="adminName" class="admin-name"></span>
+            <div class="identity-stack">
+              <span id="adminName" class="admin-name"></span>
+              <span id="roleBadge" class="role-badge"></span>
+            </div>
           </div>
           <button id="togglePipelineHeaderBtn" class="btn-secondary admin-only" style="display: none;" title="Abrir/Fechar Monitor de Pipeline">
             ⚙️ Monitor
@@ -129,7 +132,7 @@
     <div class="dashboard-grid" id="authenticatedWorkspace">
       
       <!-- Painel Esquerdo: Configurações & Fontes de Dados -->
-      <aside class="sidebar-panel glass-card" id="sidebarPanel">
+      <aside class="sidebar-panel glass-card client-workspace-only" id="sidebarPanel">
         <!-- Seleção de Agentes -->
         <div class="sidebar-section">
           <h2>
@@ -240,19 +243,19 @@
         
         <!-- Barra de Navegação por Abas -->
         <nav class="main-tabs" role="tablist" aria-label="Navegação do Workspace">
-          <button class="tab-btn active" data-target="overviewTab">🌟 Visão Geral</button>
-          <button class="tab-btn" data-target="chatTab">💬 Builder Chat</button>
-          <button class="tab-btn" data-target="agentsTab">🤖 Meus Agentes</button>
-          <button class="tab-btn" data-target="agentBuilderTab" style="display: none;">🛠️ Construir Agente</button>
-          <button class="tab-btn client-only" data-target="publishTab">🌐 Publicar Página</button>
-          <button class="tab-btn admin-only" data-target="requestsTab" id="tabRequestsBtn" style="display: none; position: relative;">
+          <button class="tab-btn active client-workspace-only" data-target="overviewTab">🌟 Visão Geral</button>
+          <button class="tab-btn client-workspace-only" data-target="chatTab">💬 Builder Chat</button>
+          <button class="tab-btn client-workspace-only" data-target="agentsTab">🤖 Meus Agentes</button>
+          <button class="tab-btn client-workspace-only" data-target="agentBuilderTab" style="display: none;">🛠️ Construir Agente</button>
+          <button class="tab-btn client-only client-workspace-only" data-target="publishTab">🌐 Publicar Página</button>
+          <button class="tab-btn admin-only admin-workspace-only" data-target="requestsTab" id="tabRequestsBtn" style="display: none; position: relative;">
             🔔 Pedidos de Acesso <span id="accessRequestsBadge" class="tab-badge-dot" style="display: none;">0</span>
           </button>
-          <button class="tab-btn admin-only" data-target="adminTab" style="display: none;">⚙️ Administração</button>
+          <button class="tab-btn admin-only admin-workspace-only" data-target="adminTab" style="display: none;">⚙️ Administração</button>
         </nav>
 
         <!-- Aba 1: Visão Geral -->
-        <section class="tab-content active glass-card overview-tab" id="overviewTab">
+        <section class="tab-content active glass-card overview-tab client-workspace-only" id="overviewTab">
           <div class="overview-hero">
             <span class="eyebrow">ECOSSISTEMA OLLAMA & AGENTES AUTÔNOMOS</span>
             <h2>Seu Hub Inteligente de IA, Engenharia e Automação</h2>
@@ -284,7 +287,7 @@
         </section>
 
         <!-- Aba 2: Builder Chat & Sandbox -->
-        <section class="tab-content glass-card chat-section" id="chatTab" style="display: none;">
+        <section class="tab-content glass-card chat-section client-workspace-only" id="chatTab" style="display: none;">
           <div class="chat-header">
             <h2>💬 Central de Mensagens & Builder</h2>
             <div style="display: flex; align-items: center; gap: 8px;">
@@ -318,7 +321,7 @@
         </section>
 
         <!-- Sandbox de Telas Dinâmicas -->
-        <section class="sandbox-section glass-card" id="sandboxSection" style="display: none;">
+        <section class="sandbox-section glass-card client-workspace-only" id="sandboxSection" style="display: none;">
           <div class="sandbox-header">
             <h2>⚡ Tela Dinâmica Compilada por Alex</h2>
             <button id="finishScreenBtn" class="btn-danger" type="button">Finalizar e Desalocar Tela</button>
@@ -327,7 +330,7 @@
         </section>
 
         <!-- Aba 3: Meus Agentes -->
-        <section class="tab-content glass-card" id="agentsTab" style="display: none;">
+        <section class="tab-content glass-card client-workspace-only" id="agentsTab" style="display: none;">
           <div class="section-heading-row">
             <div>
               <h2>🤖 Agentes Ativos no Workspace</h2>
@@ -339,7 +342,7 @@
         </section>
 
         <!-- Aba 4: Construtor de Agentes -->
-        <section class="tab-content glass-card agent-builder-tab" id="agentBuilderTab" style="display: none;">
+        <section class="tab-content glass-card agent-builder-tab client-workspace-only" id="agentBuilderTab" style="display: none;">
           <div class="editor-heading">
             <div>
               <span class="eyebrow">SESSÃO DE CONSTRUÇÃO DE AGENTES</span>
@@ -376,7 +379,7 @@
         </section>
 
         <!-- Aba 5: Publicar Página -->
-        <section class="tab-content glass-card" id="publishTab" style="display: none;">
+        <section class="tab-content glass-card client-workspace-only" id="publishTab" style="display: none;">
           <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
             <div>
               <h2>🌐 Publicar Página Acessível</h2>
@@ -385,19 +388,27 @@
             <button type="button" id="btnOpenNewPageEditor" class="btn-primary" style="white-space: nowrap; font-size: 0.85rem; padding: 8px 16px;">✨ Novo Estúdio Visual</button>
           </div>
 
-          <!-- Barra de Segmentos Rápidos na Aba Principal -->
-          <div class="page-template-bar" style="margin-bottom: 20px;">
-            <span style="font-size: 0.76rem; color: var(--text-muted); font-weight: 700;">CRIAR POR SEGMENTO:</span>
-            <button type="button" class="template-chip" data-template="sales">🛍️ Varejo & E-commerce</button>
-            <button type="button" class="template-chip" data-template="house">🏠 THE HOUSE / Imóveis</button>
-            <button type="button" class="template-chip" data-template="gastro">🍽️ Gastronomia & Delivery</button>
-            <button type="button" class="template-chip" data-template="health">🩺 Saúde & Clínicas</button>
-            <button type="button" class="template-chip" data-template="law">⚖️ Advocacia & Jurídico</button>
-            <button type="button" class="template-chip" data-template="services">🚀 SaaS & Tecnologia</button>
-            <button type="button" class="template-chip" data-template="fitness">🏋️ Fitness & Performance</button>
-            <button type="button" class="template-chip" data-template="education">🎓 Cursos & Mentorias</button>
-            <button type="button" class="template-chip" data-template="auto">🚗 Automotivo & Carros</button>
-            <button type="button" class="template-chip" data-template="report">📊 Relatórios de IA</button>
+          <div class="page-builder-desk">
+            <div class="page-builder-desk-heading">
+              <div>
+                <span class="eyebrow">ESTÚDIO VISUAL DO CLIENTE</span>
+                <h3>Construa sua página como em um documento visual</h3>
+                <p>Escolha um bloco, ajuste o conteúdo e veja a prévia antes de publicar. Tudo permanece ligado ao seu login.</p>
+              </div>
+              <span class="page-builder-save-state">rascunho local · prévia ao vivo</span>
+            </div>
+            <div class="page-builder-toolbar" role="toolbar" aria-label="Ferramentas para construir a página">
+              <button type="button" class="builder-tool active" data-builder-mode="form"><span>✍</span><strong>Texto</strong><small>Título e conteúdo</small></button>
+              <button type="button" class="builder-tool" data-builder-mode="media"><span>▧</span><strong>Fotos e vídeos</strong><small>Upload e galeria</small></button>
+              <button type="button" class="builder-tool" data-builder-mode="pricing"><span>▦</span><strong>Preços</strong><small>Tabela de ofertas</small></button>
+              <button type="button" class="builder-tool" data-builder-mode="chatbot"><span>◌</span><strong>Chatbot</strong><small>Seu agente no site</small></button>
+              <button type="button" class="builder-tool" data-builder-mode="actions"><span>↗</span><strong>Botões</strong><small>CTA e WhatsApp</small></button>
+              <button type="button" class="builder-tool" data-builder-mode="template"><span>✦</span><strong>Modelos</strong><small>Base para começar</small></button>
+            </div>
+            <div class="page-builder-next-step">
+              <span><strong>Comece pelo conteúdo.</strong> Depois combine mídia, preços e o agente que atenderá seus visitantes.</span>
+              <button type="button" class="btn-primary" id="btnOpenBuilderFromDesk">Abrir editor visual completo →</button>
+            </div>
           </div>
           
           <form id="publicPageForm" class="public-page-form">
@@ -414,7 +425,7 @@
         </section>
 
         <!-- Aba Editor de Páginas (ESTÚDIO DE MODELAGEM & VENDAS) -->
-        <section class="tab-content glass-card page-editor-tab" id="pageEditorTab" style="display: none;">
+        <section class="tab-content glass-card page-editor-tab client-workspace-only" id="pageEditorTab" style="display: none;">
           <div class="editor-heading">
             <div>
               <span class="eyebrow">ESTÚDIO DE MODELAGEM & VENDAS</span>
@@ -505,15 +516,44 @@
                 </div>
 
                 <!-- Barra de Ferramentas de Inserção Rápida e Mídia -->
-                <div class="editor-tools-bar">
-                  <span style="font-size: 0.74rem; color: var(--text-muted); font-weight: 700;">INSERIR MÍDIA:</span>
-                  <label class="tool-btn-upload" title="Fazer Upload de Fotos ou Vídeos">
+                  <div class="editor-tools-bar">
+                    <span class="editor-tools-label">INSERIR NO DOCUMENTO</span>
+                    <button type="button" class="tool-btn tool-btn-primary" id="openDocumentToolsBtn">＋ Adicionar bloco</button>
+                    <label class="tool-btn-upload" title="Fazer Upload de Fotos ou Vídeos">
                     📷 Upload Foto/Vídeo
                     <input type="file" id="mediaUploadInput" accept="image/*,video/mp4,video/webm" multiple style="display: none;" />
                   </label>
-                  <button type="button" class="tool-btn" id="btnAddYoutube" title="Inserir Vídeo do YouTube">🎥 YouTube</button>
+                  <button type="button" class="tool-btn" id="btnAddYoutube" title="Inserir Vídeo do YouTube">🎥 Vídeo</button>
                   <button type="button" class="tool-btn" id="btnAddWhatsapp" title="Inserir Botão WhatsApp">💬 WhatsApp</button>
-                  <button type="button" class="tool-btn" id="btnAddButton" title="Inserir Botão de Ação">🔘 Botão CTA</button>
+                  <button type="button" class="tool-btn" id="btnAddButton" title="Inserir Botão de Ação">🔘 CTA</button>
+                </div>
+
+                <div class="visual-block-builder">
+                  <div class="visual-block-heading">
+                    <div>
+                      <strong>Blocos visuais</strong>
+                      <span>Monte recursos da página sem escrever código.</span>
+                    </div>
+                    <span class="visual-block-status" id="visualBlockStatus">pronto</span>
+                  </div>
+                  <div class="visual-block-grid">
+                    <div class="visual-block-card">
+                      <span class="visual-block-icon">▦</span>
+                      <div>
+                        <strong>Tabela de preços</strong>
+                        <span>Produtos, benefícios e valores em formato responsivo.</span>
+                      </div>
+                      <button type="button" class="tool-btn" id="btnAddPricingTable">Adicionar tabela</button>
+                    </div>
+                    <div class="visual-block-card">
+                      <span class="visual-block-icon">◌</span>
+                      <div>
+                        <strong>Chatbot do seu agente</strong>
+                        <span>Responde usando o conteúdo e a oferta desta página.</span>
+                      </div>
+                      <button type="button" class="tool-btn" id="btnAddPageChatbot">Adicionar chatbot</button>
+                    </div>
+                  </div>
                 </div>
 
                 <!-- Galeria de Mídia do Usuário (Uploads recentes) -->
@@ -639,8 +679,32 @@
           </div>
         </section>
 
+        <div class="document-tools-backdrop" id="documentToolsBackdrop" hidden>
+          <section class="document-tools-popup" role="dialog" aria-modal="true" aria-labelledby="documentToolsTitle">
+            <div class="document-tools-popup-header">
+              <div>
+                <span class="eyebrow">FERRAMENTAS DO DOCUMENTO</span>
+                <h2 id="documentToolsTitle">O que você quer adicionar?</h2>
+              </div>
+              <button type="button" class="popup-close-btn" id="closeDocumentToolsBtn" aria-label="Fechar ferramentas">×</button>
+            </div>
+            <p class="section-desc">Escolha uma ação. Ela será inserida exatamente no ponto do cursor no conteúdo da página.</p>
+            <div class="document-tools-grid">
+              <button type="button" class="document-tool-action" data-popup-action="heading"><strong>H1 Título</strong><span>Crie um cabeçalho principal</span></button>
+              <button type="button" class="document-tool-action" data-popup-action="subheading"><strong>H2 Seção</strong><span>Organize o conteúdo</span></button>
+              <button type="button" class="document-tool-action" data-popup-action="paragraph"><strong>Texto</strong><span>Adicione um parágrafo</span></button>
+              <button type="button" class="document-tool-action" data-popup-action="divider"><strong>Separador</strong><span>Divida seções da página</span></button>
+              <button type="button" class="document-tool-action" data-popup-action="pricing"><strong>Tabela de preços</strong><span>Produtos, planos e valores</span></button>
+              <button type="button" class="document-tool-action" data-popup-action="chatbot"><strong>Chatbot do agente</strong><span>Atenda visitantes</span></button>
+              <button type="button" class="document-tool-action" data-popup-action="image"><strong>Imagem</strong><span>Insira uma foto da galeria</span></button>
+              <button type="button" class="document-tool-action" data-popup-action="color"><strong>Cor do destaque</strong><span>Defina a cor desta seção</span></button>
+              <button type="button" class="document-tool-action" data-popup-action="template"><strong>Modelo pronto</strong><span>Comece com uma estrutura</span></button>
+            </div>
+          </section>
+        </div>
+
         <!-- Aba 6: Pedidos de Acesso -->
-        <section class="tab-content glass-card requests-tab" id="requestsTab" style="display: none;">
+        <section class="tab-content glass-card requests-tab admin-workspace-only" id="requestsTab" style="display: none;">
           <div class="section-heading-row">
             <div>
               <h2>🔔 Pedidos de Acesso Pendentes</h2>
@@ -653,7 +717,7 @@
         </section>
 
         <!-- Aba 7: Administração -->
-        <section class="tab-content glass-card admin-tab" id="adminTab" style="display: none;">
+        <section class="tab-content glass-card admin-tab admin-workspace-only" id="adminTab" style="display: none;">
           <div class="section-heading-row">
             <div>
               <h2>⚙️ Gestão de Usuários & Clientes Autorizados</h2>

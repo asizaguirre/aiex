@@ -1,5 +1,6 @@
 package com.alexai.platform.controller;
 
+import com.alexai.platform.client.OllamaClient;
 import com.alexai.platform.cqrs.PageCommandService;
 import com.alexai.platform.cqrs.PageQueryService;
 import com.alexai.platform.service.AdminAuthService;
@@ -22,6 +23,8 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.util.*;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 @RestController
 @RequestMapping("/api/pages")
@@ -33,15 +36,21 @@ public class PublicPageController {
     private final PublicPageService publicPageService;
     private final PageCommandService pageCommandService;
     private final PageQueryService pageQueryService;
+    private final OllamaClient ollamaClient;
+    private final com.alexai.platform.service.CustomAgentService customAgentService;
     private final Path mediaStorageDir = Paths.get(System.getenv().getOrDefault("PUBLIC_MEDIA_DIR", "db/public_media"));
 
     public PublicPageController(AdminAuthService adminAuthService, UserAccessService userAccessService, PublicPageService publicPageService,
-                                PageCommandService pageCommandService, PageQueryService pageQueryService) {
+                                PageCommandService pageCommandService, PageQueryService pageQueryService,
+                                OllamaClient ollamaClient,
+                                com.alexai.platform.service.CustomAgentService customAgentService) {
         this.adminAuthService = adminAuthService;
         this.userAccessService = userAccessService;
         this.publicPageService = publicPageService;
         this.pageCommandService = pageCommandService;
         this.pageQueryService = pageQueryService;
+        this.ollamaClient = ollamaClient;
+        this.customAgentService = customAgentService;
         try {
             Files.createDirectories(mediaStorageDir);
         } catch (IOException ignored) {}
@@ -94,6 +103,34 @@ public class PublicPageController {
             return ResponseEntity.notFound().build();
         }
         return ResponseEntity.ok(pageWithUrl(page));
+    }
+
+    @PostMapping("/{slug}/chat")
+    public ResponseEntity<?> pageChat(@PathVariable String slug, @RequestBody Map<String, String> body) {
+        String message = body.getOrDefault("message", "").trim();
+        if (message.isBlank() || message.length() > 1000) {
+            return ResponseEntity.badRequest().body(Map.of("message", "Envie uma pergunta de até 1000 caracteres."));
+        }
+        Map<String, Object> page = pageQueryService.findBySlug(slug);
+        if (page == null) return ResponseEntity.notFound().build();
+        String context = String.valueOf(page.getOrDefault("content", ""));
+        String agentContext = "";
+        Matcher agentMatcher = Pattern.compile("\\[chatbot:(.*?)\\]", Pattern.CASE_INSENSITIVE).matcher(context);
+        if (agentMatcher.find()) {
+            Map<String, Object> agent = customAgentService.getAgentByNameAndOwner(
+                agentMatcher.group(1).trim(), String.valueOf(page.getOrDefault("ownerEmail", "")));
+            if (agent != null) {
+            agentContext = "\n\nCONFIGURAÇÃO DO AGENTE DO CLIENTE:\nNome: "
+                + agent.getOrDefault("name", "") + "\nObjetivo: "
+                + agent.getOrDefault("role", agent.getOrDefault("description", ""));
+            }
+        }
+        String prompt = "Você é o assistente comercial da página pública '" + page.get("title") + "'. "
+                + "Responda somente com base no conteúdo abaixo. Se a informação não existir, diga que não sabe e convide o visitante a entrar em contato. "
+                + "Seja breve, cordial e não invente preços, prazos ou políticas.\n\n"
+                + "CONTEÚDO DA PÁGINA:\n" + context.substring(0, Math.min(context.length(), 12000)) + agentContext
+                + "\n\nPERGUNTA DO VISITANTE:\n" + message;
+        return ResponseEntity.ok(Map.of("reply", ollamaClient.generate(prompt)));
     }
 
     @PutMapping("/{slug}")
@@ -262,7 +299,8 @@ public class PublicPageController {
 
     public static String renderPage(Map<String, Object> page) {
         String title = escapeHtml(String.valueOf(page.get("title")));
-        String formattedContent = formatContent(String.valueOf(page.get("content")));
+        String slug = escapeHtml(String.valueOf(page.get("slug")));
+        String formattedContent = formatContent(String.valueOf(page.get("content")), slug);
         
         return "<!doctype html><html lang=\"pt-BR\"><head><meta charset=\"UTF-8\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1.0\"><title>"
                 + title + " · AlEx Platform</title><link rel=\"preconnect\" href=\"https://fonts.googleapis.com\"><link rel=\"preconnect\" href=\"https://fonts.gstatic.com\" crossorigin><link href=\"https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;600&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap\" rel=\"stylesheet\">"
@@ -294,6 +332,7 @@ public class PublicPageController {
                 + ".page-card{background:rgba(0,0,0,0.02);border:1px solid rgba(0,0,0,0.07);border-radius:14px;padding:22px;margin:18px 0;transition:transform 0.2s,border-color 0.2s}"
                 + ".page-card:hover{border-color:rgba(0,113,227,0.3);transform:translateY(-2px)}"
                 + ".page-link{color:#0071e3;font-weight:600;text-decoration:underline;}"
+                + ".pricing-table{width:100%;border-collapse:collapse;margin:24px 0;background:#fff;border:1px solid rgba(0,0,0,.08);border-radius:14px;overflow:hidden}.pricing-table th,.pricing-table td{text-align:left;padding:14px;border-bottom:1px solid rgba(0,0,0,.07)}.pricing-table th{background:#f0f6ff;color:#0071e3;font-size:.8rem;text-transform:uppercase;letter-spacing:.04em}.pricing-table tr:last-child td{border-bottom:0}.page-chatbot{margin:28px 0;padding:18px;border:1px solid rgba(0,113,227,.2);border-radius:16px;background:#f7fbff}.page-chatbot strong{display:block;color:#0071e3;margin-bottom:6px}.page-chatbot p{font-size:.9rem;margin:0 0 12px}.page-chatbot form{display:flex;gap:8px}.page-chatbot input{flex:1;padding:11px;border:1px solid #cbd8e8;border-radius:10px}.page-chatbot button{border:0;border-radius:10px;padding:11px 16px;background:#0071e3;color:#fff;font-weight:700;cursor:pointer}.chatbot-reply{margin-top:12px;padding:10px 12px;border-radius:10px;background:#fff;color:#515154;font-size:.9rem;white-space:pre-wrap}"
                 + ".footer-actions{display:flex;align-items:center;justify-content:space-between;padding-top:24px;margin-top:32px;border-top:1px solid rgba(0,0,0,0.08);font-size:0.85rem;color:#86868b}"
                 + ".btn-copy{padding:8px 16px;background:rgba(0,113,227,0.08);border:1px solid rgba(0,113,227,0.2);color:#0071e3;font-weight:600;border-radius:10px;cursor:pointer;transition:all 0.2s;font-size:0.85rem}"
                 + ".btn-copy:hover{background:#0071e3;color:#ffffff;}"
@@ -302,12 +341,58 @@ public class PublicPageController {
                 + "<header><div class=\"logo\"><div class=\"orb\"></div>AlEx Platform</div><span class=\"badge\">Página Pública</span></header>"
                 + "<main><h1>" + title + "</h1><div class=\"content-box\">" + formattedContent + "</div>"
                 + "<div class=\"footer-actions\"><span>Publicado com AlEx Platform v2</span><button class=\"btn-copy\" onclick=\"navigator.clipboard.writeText(window.location.href);this.textContent='Link Copiado!';setTimeout(()=>this.textContent='Copiar Link',2000)\">Copiar Link</button></div>"
+                + "<script>document.querySelectorAll('.page-chatbot form').forEach(function(form){form.addEventListener('submit',async function(event){event.preventDefault();var input=form.querySelector('input');var reply=form.querySelector('.chatbot-reply');var button=form.querySelector('button');if(!input.value.trim())return;button.disabled=true;reply.textContent='Pensando...';try{var response=await fetch('/api/pages/" + slug + "/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({message:input.value.trim()})});var data=await response.json();reply.textContent=data.reply||data.message||'Não foi possível responder agora.'}catch(error){reply.textContent='Não foi possível conectar ao assistente agora.'}finally{button.disabled=false}})})</script>"
                 + "</main></body></html>";
     }
 
     public static String formatContent(String raw) {
+        return formatContent(raw, "");
+    }
+
+    public static String formatContent(String raw, String pageSlug) {
         if (raw == null || raw.isBlank()) return "";
         String text = escapeHtml(raw);
+
+        Matcher pricingMatcher = Pattern.compile("\\[pricing\\]\\s*([\\s\\S]*?)\\s*\\[/pricing\\]", Pattern.CASE_INSENSITIVE).matcher(text);
+        StringBuffer pricingBuffer = new StringBuffer();
+        while (pricingMatcher.find()) {
+            String[] rows = pricingMatcher.group(1).trim().split("\\n");
+            StringBuilder table = new StringBuilder("<table class=\"pricing-table\"><thead><tr>");
+            if (rows.length > 0) {
+                for (String cell : rows[0].split("\\|")) table.append("<th>").append(cell.trim()).append("</th>");
+                table.append("</tr></thead><tbody>");
+                for (int i = 1; i < rows.length; i++) {
+                    if (rows[i].isBlank()) continue;
+                    table.append("<tr>");
+                    for (String cell : rows[i].split("\\|")) table.append("<td>").append(cell.trim()).append("</td>");
+                    table.append("</tr>");
+                }
+            }
+            table.append("</tbody></table>");
+            pricingMatcher.appendReplacement(pricingBuffer, Matcher.quoteReplacement(table.toString()));
+        }
+        pricingMatcher.appendTail(pricingBuffer);
+        text = pricingBuffer.toString();
+
+        Matcher colorMatcher = Pattern.compile("\\[color:(#[0-9a-f]{6})\\]([\\s\\S]*?)\\[/color\\]", Pattern.CASE_INSENSITIVE).matcher(text);
+        StringBuffer colorBuffer = new StringBuffer();
+        while (colorMatcher.find()) {
+            String block = "<div style=\"padding:16px;border-left:4px solid " + colorMatcher.group(1)
+                + ";background:rgba(0,113,227,.06);border-radius:0 10px 10px 0\">"
+                + colorMatcher.group(2) + "</div>";
+            colorMatcher.appendReplacement(colorBuffer, Matcher.quoteReplacement(block));
+        }
+        colorMatcher.appendTail(colorBuffer);
+        text = colorBuffer.toString();
+
+        Matcher chatbotMatcher = Pattern.compile("\\[chatbot:(.*?)\\]\\((.*?)\\)", Pattern.CASE_INSENSITIVE).matcher(text);
+        StringBuffer chatbotBuffer = new StringBuffer();
+        while (chatbotMatcher.find()) {
+            String widget = "<div class=\"page-chatbot\"><strong>◌ " + chatbotMatcher.group(1) + "</strong><p>" + chatbotMatcher.group(2) + "</p><form><input placeholder=\"Pergunte sobre esta página...\" maxlength=\"1000\" /><button type=\"submit\">Enviar</button><div class=\"chatbot-reply\"></div></form></div>";
+            chatbotMatcher.appendReplacement(chatbotBuffer, Matcher.quoteReplacement(widget));
+        }
+        chatbotMatcher.appendTail(chatbotBuffer);
+        text = chatbotBuffer.toString();
 
         // Images: ![alt](url)
         text = text.replaceAll("!\\[(.*?)\\]\\((.*?)\\)", "<div class=\"page-media-box\"><img src=\"$2\" alt=\"$1\" class=\"page-img\" loading=\"lazy\" /></div>");
@@ -353,7 +438,7 @@ public class PublicPageController {
         for (String part : parts) {
             String trimmed = part.trim();
             if (trimmed.isEmpty()) continue;
-            if (trimmed.startsWith("<h") || trimmed.startsWith("<ul") || trimmed.startsWith("<div") || trimmed.startsWith("<blockquote") || trimmed.startsWith("<hr")) {
+            if (trimmed.startsWith("<h") || trimmed.startsWith("<ul") || trimmed.startsWith("<div") || trimmed.startsWith("<table") || trimmed.startsWith("<blockquote") || trimmed.startsWith("<hr")) {
                 sb.append(trimmed);
             } else {
                 sb.append("<p>").append(trimmed.replace("\n", "<br>")).append("</p>");

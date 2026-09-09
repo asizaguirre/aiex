@@ -1,5 +1,5 @@
 
-FROM eclipse-temurin:21-jdk AS build
+FROM eclipse-temurin:25-jdk AS build
 
 WORKDIR /build
 
@@ -8,7 +8,7 @@ COPY src ./src
 
 RUN apt-get update && apt-get install -y maven && mvn -B -DskipTests package
 
-FROM eclipse-temurin:21-jre-jammy
+FROM eclipse-temurin:25-jre-jammy
 
 WORKDIR /app
 

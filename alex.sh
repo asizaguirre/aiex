@@ -32,10 +32,23 @@ EOF
 }
 
 command_exists() { command -v "$1" >/dev/null 2>&1; }
+configure_java_runtime() {
+  local candidate major
+  for candidate in "${JAVA_HOME:-}" "$HOME"/.jdk/jdk-25* /usr/lib/jvm/*25*; do
+    [[ -x "$candidate/bin/java" ]] || continue
+    major=$("$candidate/bin/java" -version 2>&1 | sed -n 's/.*version "\([0-9]*\).*/\1/p' | head -1)
+    if [[ "$major" == "25" ]]; then
+      export JAVA_HOME="$candidate"
+      export PATH="$JAVA_HOME/bin:$PATH"
+      return 0
+    fi
+  done
+  fail "Java 25 nao encontrado. Configure JAVA_HOME para um JDK 25 antes de iniciar a plataforma."
+}
 
 install_system_deps() {
-  [[ "$(uname -s)" == "Linux" ]] || fail "A instalacao automatica so esta preparada para Linux. Instale Docker, Java 21, Maven, Python 3 e curl manualmente."
-  command_exists apt-get || fail "apt-get nao encontrado. Instale Docker, Java 21, Maven, Python 3 e curl manualmente."
+  [[ "$(uname -s)" == "Linux" ]] || fail "A instalacao automatica so esta preparada para Linux. Instale Docker, Java 25, Maven, Python 3 e curl manualmente."
+  command_exists apt-get || fail "apt-get nao encontrado. Instale Docker, Java 25, Maven, Python 3 e curl manualmente."
 
   local sudo_cmd=()
   if [[ "$(id -u)" -ne 0 ]]; then
@@ -45,7 +58,7 @@ install_system_deps() {
 
   log "Instalando dependencias do sistema"
   "${sudo_cmd[@]}" apt-get update
-  local packages=(ca-certificates curl openjdk-21-jdk maven python3 python3-venv)
+  local packages=(ca-certificates curl openjdk-25-jdk maven python3 python3-venv)
   if [[ "$MODE" == "docker" ]]; then
     packages+=(docker.io docker-compose-plugin)
   fi
@@ -66,6 +79,7 @@ check_dependencies() {
     command_exists docker || missing+=(docker)
     docker compose version >/dev/null 2>&1 || missing+=("docker compose")
   else
+    configure_java_runtime
     command_exists java || missing+=(java)
     command_exists curl || missing+=(curl)
     command_exists ollama || missing+=(ollama)
@@ -145,6 +159,7 @@ start_ollama_local() {
 
 start_local() {
   mkdir -p "$ROOT_DIR/db" "$ROOT_DIR/rag/documents" "$ROOT_DIR/rag/vectorstore"
+  configure_java_runtime
   start_ollama_local
   log "Baixando modelos Ollama, se necessario"
   ollama pull "$OLLAMA_MODEL"

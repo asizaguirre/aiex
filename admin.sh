@@ -22,6 +22,22 @@ set -Eeuo pipefail
 
 # ── Diretórios ─────────────────────────────────────────────────────────────────
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+configure_java_runtime() {
+  local candidate major
+  for candidate in "${JAVA_HOME:-}" "$HOME"/.jdk/jdk-25* /usr/lib/jvm/*25*; do
+    [[ -x "$candidate/bin/java" ]] || continue
+    major=$("$candidate/bin/java" -version 2>&1 | sed -n 's/.*version "\([0-9]*\).*/\1/p' | head -1)
+    if [[ "$major" == "25" ]]; then
+      export JAVA_HOME="$candidate"
+      export PATH="$JAVA_HOME/bin:$PATH"
+      return 0
+    fi
+  done
+  printf '\n[AlEx] ERRO: Java 25 nao encontrado. Configure JAVA_HOME para um JDK 25 antes de iniciar a plataforma.\n' >&2
+  return 1
+}
+
+configure_java_runtime
 ROOT_DIR="$SCRIPT_DIR"
 BACKEND_DIR="$ROOT_DIR/backend"
 JAR_FILE="$BACKEND_DIR/target/alex-platform-2.0.0.jar"
