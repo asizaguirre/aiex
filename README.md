@@ -437,6 +437,7 @@ Expected health response / Resposta esperada:
 
 - [Arquitetura CQRS](docs/ARQUITETURA-CQRS.md)
 - [Guia de páginas web para leigos](docs/GUIA-PAGINA-WEB-PARA-LEIGOS.md)
+- [Política de segurança e controle do repositório](SECURITY.md)
 - [Deploy no Render](RENDER_DEPLOY.md)
 - [Configuração do WireGuard](RENDER_WIREGUARD_CONFIG.md)
 
