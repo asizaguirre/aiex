@@ -420,6 +420,55 @@ if (ollamaModal) {
 // ===================================================================
 let autoVoiceEnabled = false;
 const voiceToggleBtn = document.getElementById('voiceToggleBtn');
+const changeVoiceBtn = document.getElementById('changeVoiceBtn');
+const clearConversationBtn = document.getElementById('clearConversationBtn');
+const newConversationBtn = document.getElementById('newConversationBtn');
+const chatHistoryElement = document.getElementById('chatHistory');
+let selectedVoiceName = '';
+
+function availablePortugueseVoices() {
+  if (!window.speechSynthesis) return [];
+  return window.speechSynthesis.getVoices().filter(voice => /^pt(-|_)/i.test(voice.lang));
+}
+
+function updateVoiceButton() {
+  if (!changeVoiceBtn) return;
+  const voice = availablePortugueseVoices().find(item => item.name === selectedVoiceName);
+  changeVoiceBtn.textContent = voice ? `🎙 ${voice.name.replace(/\s*\(.*?\)/, '').slice(0, 22)}` : '🎙 Voz: Auto';
+}
+
+if (window.speechSynthesis) {
+  window.speechSynthesis.addEventListener('voiceschanged', updateVoiceButton);
+}
+
+if (changeVoiceBtn) {
+  changeVoiceBtn.addEventListener('click', () => {
+    const voices = availablePortugueseVoices();
+    if (!voices.length) {
+      showToast('O navegador ainda não disponibilizou vozes em português.');
+      return;
+    }
+    const currentIndex = voices.findIndex(voice => voice.name === selectedVoiceName);
+    selectedVoiceName = voices[(currentIndex + 1) % voices.length].name;
+    updateVoiceButton();
+    showToast(`Voz selecionada: ${selectedVoiceName}`);
+  });
+}
+
+function resetBuilderConversation(showToastMessage) {
+  if (!chatHistoryElement) return;
+  chatHistoryElement.innerHTML = `
+    <div class="chat-bubble assistant alex">
+      <strong>ALIA & ALEX</strong>
+      <div>Olá! Estamos prontos. Conte qual agente, tela, integração ou necessidade técnica você deseja desenvolver hoje.</div>
+    </div>
+  `;
+  if (messageInput) messageInput.value = '';
+  if (statusEl) statusEl.textContent = '';
+  if (chatStatusText) chatStatusText.textContent = 'Pronto';
+  if (window.speechSynthesis) window.speechSynthesis.cancel();
+  if (showToastMessage) showToast(showToastMessage);
+}
 
 if (voiceToggleBtn) {
   voiceToggleBtn.addEventListener('click', () => {
@@ -434,6 +483,16 @@ if (voiceToggleBtn) {
   });
 }
 
+if (clearConversationBtn) {
+  clearConversationBtn.addEventListener('click', () => {
+    if (window.confirm('Limpar as mensagens desta conversa?')) resetBuilderConversation('Conversa limpa.');
+  });
+}
+
+if (newConversationBtn) {
+  newConversationBtn.addEventListener('click', () => resetBuilderConversation('Nova conversa iniciada.'));
+}
+
 function speakText(text) {
   if (!window.speechSynthesis) return;
   window.speechSynthesis.cancel();
@@ -445,7 +504,8 @@ function speakText(text) {
   utterance.rate = 0.92;
   utterance.pitch = 1.02;
   const voices = window.speechSynthesis.getVoices();
-  const preferredVoice = voices.find(voice => /pt-BR/i.test(voice.lang) && /Google|Microsoft|Natural|Francisca|Maria|Luciana/i.test(voice.name))
+  const preferredVoice = voices.find(voice => voice.name === selectedVoiceName)
+    || voices.find(voice => /pt-BR/i.test(voice.lang) && /Google|Microsoft|Natural|Francisca|Maria|Luciana/i.test(voice.name))
     || voices.find(voice => /pt-BR/i.test(voice.lang))
     || voices.find(voice => /^pt/i.test(voice.lang));
   if (preferredVoice) utterance.voice = preferredVoice;
@@ -937,6 +997,24 @@ const customAgentRole = document.getElementById('customAgentRole');
 const customAgentsList = document.getElementById('customAgentsList');
 const agentsTabList = document.getElementById('agentsTabList');
 const openCreateFromTabBtn = document.getElementById('openCreateFromTabBtn');
+const openCustomAgentsBtn = document.getElementById('openCustomAgentsBtn');
+const customAgentsModal = document.getElementById('customAgentsModal');
+const closeCustomAgentsBtn = document.getElementById('closeCustomAgentsBtn');
+const customAgentsPopupList = document.getElementById('customAgentsPopupList');
+
+function openCustomAgentsModal() {
+  if (customAgentsModal) customAgentsModal.style.display = 'flex';
+}
+
+function closeCustomAgentsModal() {
+  if (customAgentsModal) customAgentsModal.style.display = 'none';
+}
+
+if (openCustomAgentsBtn) openCustomAgentsBtn.addEventListener('click', openCustomAgentsModal);
+if (closeCustomAgentsBtn) closeCustomAgentsBtn.addEventListener('click', closeCustomAgentsModal);
+if (customAgentsModal) customAgentsModal.addEventListener('click', event => {
+  if (event.target === customAgentsModal) closeCustomAgentsModal();
+});
 
 const agentBuilderTab = document.getElementById('agentBuilderTab');
 const agentBuilderTabButton = document.querySelector('[data-target="agentBuilderTab"]');
@@ -1094,10 +1172,12 @@ async function loadCustomAgents() {
 function renderCustomAgents(agents) {
   if (customAgentsList) customAgentsList.innerHTML = '';
   if (agentsTabList) agentsTabList.innerHTML = '';
+  if (customAgentsPopupList) customAgentsPopupList.innerHTML = '';
 
   if (!agents || agents.length === 0) {
     if (customAgentsList) customAgentsList.innerHTML = '<span style="font-size: 0.75rem; color: var(--text-muted);">Nenhum agente instanciado.</span>';
     if (agentsTabList) agentsTabList.innerHTML = '<div style="color: var(--text-muted); padding: 20px; text-align: center;">Nenhum agente construído ainda. Use a aba Construir Agente ou peça à Alia!</div>';
+    if (customAgentsPopupList) customAgentsPopupList.innerHTML = '<div class="custom-agents-empty">Nenhum agente construído ainda.</div>';
     return;
   }
 
@@ -1124,6 +1204,22 @@ function renderCustomAgents(agents) {
       tabClone.querySelector('.btn-open-chat').addEventListener('click', () => openAgentModal(agent.name, agent.role));
       tabClone.querySelector('.btn-remove-agent').addEventListener('click', () => deleteCustomAgent(agent.id));
       agentsTabList.appendChild(tabClone);
+    }
+    if (customAgentsPopupList) {
+      const popupItem = document.createElement('article');
+      popupItem.className = 'custom-agent-popup-item';
+      popupItem.innerHTML = `
+        <div>
+          <strong>🤖 ${escapeHtml(agent.name)}</strong>
+          <p>${escapeHtml(agent.role)}</p>
+        </div>
+        <button type="button" class="btn-primary">Abrir conversa</button>
+      `;
+      popupItem.querySelector('button').addEventListener('click', () => {
+        closeCustomAgentsModal();
+        openAgentModal(agent.name, agent.role);
+      });
+      customAgentsPopupList.appendChild(popupItem);
     }
   });
 }

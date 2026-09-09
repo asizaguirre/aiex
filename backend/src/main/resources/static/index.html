@@ -234,6 +234,7 @@
                     data-help-content="Lista de todos os agentes criados por você ou disponibilizados na plataforma. Clique em Chat para conversar em tempo real com voz e texto."
                     aria-label="Ajuda sobre Agentes Ativos">?</button>
           </h2>
+          <button id="openCustomAgentsBtn" class="agent-launcher-btn" type="button">🤖 Abrir agentes construídos</button>
           <div id="customAgentsList" class="custom-agents-list"></div>
         </div>
       </aside>
@@ -290,8 +291,11 @@
         <section class="tab-content glass-card chat-section client-workspace-only" id="chatTab" style="display: none;">
           <div class="chat-header">
             <h2>💬 Central de Mensagens & Builder</h2>
-            <div style="display: flex; align-items: center; gap: 8px;">
+            <div class="chat-header-actions">
               <button id="voiceToggleBtn" class="voice-toggle-btn" title="Ativar/desativar resposta falada por áudio">🔇 Voz</button>
+              <button id="changeVoiceBtn" class="chat-control-btn" type="button" title="Alternar voz da resposta">🎙 Voz: Auto</button>
+              <button id="clearConversationBtn" class="chat-control-btn" type="button" title="Limpar as mensagens desta conversa">🧹 Limpar</button>
+              <button id="newConversationBtn" class="chat-control-btn chat-control-primary" type="button" title="Começar uma nova conversa">＋ Nova conversa</button>
               <div id="chatStatusText" class="chat-status-indicator">Pronto</div>
             </div>
           </div>
@@ -883,6 +887,20 @@
           <button id="agentModalSendBtn" class="btn-primary" type="button">Enviar</button>
         </div>
       </div>
+    </div>
+  </div>
+
+  <div id="customAgentsModal" class="custom-agents-modal-overlay" style="display: none;">
+    <div class="custom-agents-modal glass-card" role="dialog" aria-modal="true" aria-labelledby="customAgentsModalTitle">
+      <div class="custom-agents-modal-header">
+        <div>
+          <span class="eyebrow">SEUS AGENTES</span>
+          <h2 id="customAgentsModalTitle">Agentes construídos</h2>
+          <p>Escolha um agente para abrir sua conversa dedicada.</p>
+        </div>
+        <button id="closeCustomAgentsBtn" class="btn-close-modal" type="button" title="Fechar">✖</button>
+      </div>
+      <div id="customAgentsPopupList" class="custom-agents-popup-list"></div>
     </div>
   </div>
 

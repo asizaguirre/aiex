@@ -909,6 +909,25 @@ body {
   gap: 8px;
 }
 
+.agent-launcher-btn {
+  width: 100%;
+  margin-bottom: 10px;
+  padding: 9px 12px;
+  border: 1px solid rgba(0, 113, 227, 0.25);
+  border-radius: var(--radius-md);
+  background: rgba(0, 113, 227, 0.07);
+  color: var(--color-alex);
+  font-size: 0.78rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: var(--transition-fast);
+}
+
+.agent-launcher-btn:hover {
+  background: rgba(0, 113, 227, 0.14);
+  border-color: var(--color-alex);
+}
+
 .agent-card {
   position: relative;
   display: block;
@@ -1436,6 +1455,33 @@ textarea {
   background: var(--color-alex);
   color: #ffffff;
   border-color: var(--color-alex);
+}
+
+.chat-header-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.chat-control-btn {
+  padding: 6px 9px;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  background: var(--bg-input);
+  color: var(--text-secondary);
+  font-size: 0.72rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: var(--transition-fast);
+}
+
+.chat-control-btn:hover,
+.chat-control-primary {
+  border-color: var(--color-alex);
+  color: var(--color-alex);
+  background: rgba(0, 113, 227, 0.08);
 }
 
 .chat-status-indicator {
@@ -2591,6 +2637,83 @@ textarea {
   justify-content: center;
   z-index: 10000;
   animation: appleFadeIn 0.2s ease;
+}
+
+.custom-agents-modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 10001;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 18px;
+  background: rgba(0, 0, 0, 0.35);
+  backdrop-filter: blur(14px);
+}
+
+.custom-agents-modal {
+  width: min(620px, 100%);
+  max-height: min(680px, calc(100vh - 36px));
+  overflow-y: auto;
+  padding: 22px;
+}
+
+.custom-agents-modal-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+  margin-bottom: 16px;
+}
+
+.custom-agents-modal-header h2 {
+  margin: 4px 0;
+  font-size: 1.25rem;
+}
+
+.custom-agents-modal-header p {
+  color: var(--text-muted);
+  font-size: 0.8rem;
+}
+
+.custom-agents-popup-list {
+  display: grid;
+  gap: 10px;
+}
+
+.custom-agent-popup-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 13px;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  background: var(--bg-input);
+}
+
+.custom-agent-popup-item strong,
+.custom-agent-popup-item p {
+  display: block;
+}
+
+.custom-agent-popup-item strong {
+  color: var(--text-primary);
+  font-size: 0.84rem;
+}
+
+.custom-agent-popup-item p {
+  max-width: 390px;
+  margin-top: 4px;
+  color: var(--text-secondary);
+  font-size: 0.74rem;
+  white-space: pre-wrap;
+}
+
+.custom-agents-empty {
+  padding: 28px 16px;
+  color: var(--text-muted);
+  text-align: center;
 }
 
 .shutdown-modal {
