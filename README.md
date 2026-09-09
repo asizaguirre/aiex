@@ -1,47 +1,58 @@
-# AlEx Platform v2
+# AlEx Platform v2 — Multi-Agent AI Commerce Platform
 
 > **Alia descobre. Alex constrói. Você vende.**
 > **Alia discovers. Alex builds. You sell.**
 
-Plataforma de comércio e produtividade com múltiplos agentes de IA para criar
-agentes especializados, páginas públicas, ofertas, catálogos e experiências
-digitais a partir de linguagem natural e ferramentas visuais.
+![Java 25](https://img.shields.io/badge/Java-25_LTS-red) ![Spring Boot 3.5](https://img.shields.io/badge/Spring_Boot-3.5.12-green) ![Ollama](https://img.shields.io/badge/Ollama-always_ready-orange) ![RAG](https://img.shields.io/badge/RAG-Tika_%2B_JSON-blue) ![CQRS+ES](https://img.shields.io/badge/CQRS-Elasticsearch_8.15-yellow) ![Docker](https://img.shields.io/badge/Docker-ready-blue) ![Self-hosted](https://img.shields.io/badge/Data-100%25_yours-purple)
 
-A multi-agent commerce and productivity platform for building specialized
-agents, public pages, offers, catalogs, and digital experiences through natural
-language and visual tools.
+**Sem código, sem agência: descreva sua oferta em uma frase e publique uma página de vendas com chatbot, preços, fotos e WhatsApp.**
+**No code, no agency: describe your offer in one sentence and publish a sales page with chatbot, pricing, photos, and WhatsApp.**
+
+> **💰 Publique em minutos, não em semanas. A IA entende português, monta a oferta e entrega um link público pronto para vender.**
+> **💰 Publish in minutes, not weeks. The AI understands your language, builds the offer, and hands you a public link ready to sell.**
+
+Plataforma de comércio e produtividade com múltiplos agentes de IA para criar agentes especializados, páginas públicas, ofertas, catálogos e experiências digitais a partir de linguagem natural e ferramentas visuais.
+
+A multi-agent commerce and productivity platform for building specialized agents, public pages, offers, catalogs, and digital experiences through natural language and visual tools.
 
 ## ✨ Visão do produto | Product vision
+
+> **💰 Publique em minutos, não em semanas. O agente entende português, monta a oferta e entrega um link público pronto para vender.**
+> **💰 Publish in minutes, not weeks. The agent understands your language, builds the offer, and hands you a public link ready to sell.**
 
 ### Português
 
 A AlEx Platform reúne descoberta de requisitos, engenharia, RAG e publicação em
 um único workspace. O cliente entra com sua conta autorizada, constrói seus
 agentes e publica suas próprias páginas. Cada página e cada agente ficam
-vinculados ao e-mail do proprietário.
+vinculados ao e-mail do proprietário (`ownerEmail`).
 
 O administrador do sistema tem um workspace separado para autorizar clientes,
-acompanhar solicitações e monitorar o pipeline. Clientes não recebem acesso às
+acompanhar solicitações (`/api/admin/users`, `/api/admin/requests`) e monitorar o pipeline. Clientes não recebem acesso às
 ferramentas administrativas.
+
+**Cadeia de valor:** você fala → Alia organiza → Alex constrói → você compartilha o link `/public/{slug}`.
 
 ### English
 
 AlEx Platform combines requirements discovery, engineering, RAG, and publishing
 in one workspace. An authorized customer signs in, builds their own agents, and
-publishes their own pages. Every page and agent is tied to its owner's email.
+publishes their own pages. Every page and agent is tied to its owner's email (`ownerEmail`).
 
 The system administrator has a separate workspace for approving customers,
-reviewing access requests, and monitoring the pipeline. Customers do not see
+reviewing access requests (`/api/admin/users`, `/api/admin/requests`), and monitoring the pipeline. Customers do not see
 administrative tools.
+
+**Value chain:** you talk → Alia organizes → Alex builds → you share the `/public/{slug}` link.
 
 ## 🎯 Para quem é | Who it is for
 
 | Público | Valor em português | Value in English |
 | --- | --- | --- |
-| Donos de negócios | Crie uma presença digital, catálogo ou página de vendas sem começar do zero. | Build a digital presence, catalog, or sales page without starting from scratch. |
-| Marketing e vendas | Transforme uma oferta em uma página pública com mídia, preços, CTA, WhatsApp e chatbot. | Turn an offer into a public page with media, pricing, CTAs, WhatsApp, and a chatbot. |
-| Times de produto | Converse com Alia para descobrir requisitos e use Alex para estruturar soluções. | Talk to Alia to discover requirements and use Alex to structure solutions. |
-| Desenvolvedores | Execute localmente, mantenha os dados sob seu controle e estenda os endpoints Spring Boot. | Run locally, keep data under your control, and extend the Spring Boot endpoints. |
+| 🏪 Donos de negócios locais | Crie presença digital, catálogo ou página de vendas sem começar do zero. Restaurante, imobiliária, clínica, loja: oferta vira link em minutos. | Build a digital presence, catalog, or sales page without starting from scratch. Restaurant, real estate, clinic, store: an offer becomes a link in minutes. |
+| 📣 Marketing e vendas | Transforme uma oferta em uma página pública com mídia, preços, CTA, WhatsApp e chatbot ancorado no conteúdo. | Turn an offer into a public page with media, pricing, CTAs, WhatsApp, and a content-grounded chatbot. |
+| 🧭 Times de produto | Converse com Alia para descobrir requisitos e use Alex para estruturar soluções. Estudo de mercado + Co-Pilot no editor. | Talk to Alia to discover requirements and use Alex to structure solutions. Market study + Co-Pilot inside the editor. |
+| 💻 Desenvolvedores | Execute localmente, mantenha os dados sob seu controle e estenda os endpoints Spring Boot. CQRS com fallback sem downtime. | Run locally, keep data under your control, and extend the Spring Boot endpoints. CQRS with zero-downtime fallback. |
 
 ## 🤖 O sistema de agentes | The agent system
 
