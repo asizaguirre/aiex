@@ -354,6 +354,9 @@ body {
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-card);
   box-shadow: var(--shadow-sm), inset 0 1px 0 rgba(255, 255, 255, 0.9);
+  position: relative;
+  z-index: 200000;
+  isolation: isolate;
 }
 
 .header-left {
@@ -460,6 +463,8 @@ body {
   display: flex;
   align-items: center;
   gap: 10px;
+  position: relative;
+  z-index: 200001;
 }
 
 /* ===================================================================
@@ -467,6 +472,7 @@ body {
    =================================================================== */
 .theme-picker-container {
   position: relative;
+  z-index: 200002;
 }
 
 .btn-theme-picker {
@@ -511,7 +517,10 @@ body {
   border: 1px solid rgba(0, 0, 0, 0.12);
   border-radius: var(--radius-card);
   box-shadow: var(--shadow-lg);
-  z-index: 1000;
+  z-index: 200003;
+  max-width: calc(100vw - 24px);
+  max-height: min(560px, calc(100vh - 24px));
+  overflow-y: auto;
   display: flex;
   flex-direction: column;
   gap: 12px;
@@ -2686,10 +2695,27 @@ textarea {
     flex-direction: column;
     align-items: flex-start;
     gap: 10px;
+    overflow: visible;
+  }
+  .header-left {
+    width: 100%;
+    min-width: 0;
+  }
+  .header-subtitle {
+    display: none;
   }
   .admin-zone {
     width: 100%;
     justify-content: space-between;
+    min-width: 0;
+    flex-wrap: wrap;
+  }
+  .theme-dropdown {
+    position: fixed;
+    top: 118px;
+    right: 12px;
+    left: auto;
+    width: min(290px, calc(100vw - 24px));
   }
   .dashboard-grid {
     grid-template-columns: 1fr;
