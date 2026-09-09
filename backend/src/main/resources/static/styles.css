@@ -507,7 +507,7 @@ body {
 }
 
 .theme-dropdown {
-  position: absolute;
+  position: fixed;
   top: calc(100% + 8px);
   right: 0;
   width: 290px;
@@ -517,7 +517,7 @@ body {
   border: 1px solid rgba(0, 0, 0, 0.12);
   border-radius: var(--radius-card);
   box-shadow: var(--shadow-lg);
-  z-index: 200003;
+  z-index: 2147483000;
   max-width: calc(100vw - 24px);
   max-height: min(560px, calc(100vh - 24px));
   overflow-y: auto;
@@ -2711,10 +2711,6 @@ textarea {
     flex-wrap: wrap;
   }
   .theme-dropdown {
-    position: fixed;
-    top: 118px;
-    right: 12px;
-    left: auto;
     width: min(290px, calc(100vw - 24px));
   }
   .dashboard-grid {

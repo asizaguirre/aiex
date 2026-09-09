@@ -118,6 +118,21 @@ function initThemePicker() {
 
   if (!themeToggleBtn || !themeDropdown) return;
 
+  const positionThemeDropdown = () => {
+    if (themeDropdown.style.display !== 'flex') return;
+    const buttonRect = themeToggleBtn.getBoundingClientRect();
+    const dropdownRect = themeDropdown.getBoundingClientRect();
+    const margin = 12;
+    let top = buttonRect.bottom + 8;
+    if (top + dropdownRect.height > window.innerHeight - margin) {
+      top = Math.max(margin, buttonRect.top - dropdownRect.height - 8);
+    }
+    const right = Math.max(margin, window.innerWidth - buttonRect.right);
+    themeDropdown.style.top = `${Math.round(top)}px`;
+    themeDropdown.style.right = `${Math.round(right)}px`;
+    themeDropdown.style.left = 'auto';
+  };
+
   const activeColor = localStorage.getItem('alex_apple_theme_color') || localStorage.getItem('alex_user_theme_color') || '#0071e3';
   applySystemPrimaryColor(activeColor, false);
 
@@ -125,6 +140,7 @@ function initThemePicker() {
     e.stopPropagation();
     const isVisible = themeDropdown.style.display === 'flex';
     themeDropdown.style.display = isVisible ? 'none' : 'flex';
+    if (!isVisible) requestAnimationFrame(positionThemeDropdown);
   });
 
   document.querySelectorAll('.theme-preset-btn').forEach(btn => {
@@ -166,6 +182,8 @@ function initThemePicker() {
       }
     }
   });
+  window.addEventListener('resize', positionThemeDropdown);
+  window.addEventListener('scroll', positionThemeDropdown, true);
 }
 
 // ===================================================================
@@ -421,13 +439,19 @@ function speakText(text) {
   window.speechSynthesis.cancel();
   
   // Clean text from code blocks for cleaner voice readout
-  const cleanText = text.replace(/```[\s\S]*?```/g, 'Bloco de código gerado.').replace(/[*_#`]/g, '');
+  const cleanText = text.replace(/```[\s\S]*?```/g, 'Bloco de código gerado.').replace(/[*_#`]/g, '').replace(/\s+/g, ' ').trim();
   const utterance = new SpeechSynthesisUtterance(cleanText);
   utterance.lang = 'pt-BR';
-  utterance.rate = 1.05;
-  utterance.pitch = 1.0;
+  utterance.rate = 0.92;
+  utterance.pitch = 1.02;
+  const voices = window.speechSynthesis.getVoices();
+  const preferredVoice = voices.find(voice => /pt-BR/i.test(voice.lang) && /Google|Microsoft|Natural|Francisca|Maria|Luciana/i.test(voice.name))
+    || voices.find(voice => /pt-BR/i.test(voice.lang))
+    || voices.find(voice => /^pt/i.test(voice.lang));
+  if (preferredVoice) utterance.voice = preferredVoice;
   window.speechSynthesis.speak(utterance);
 }
+window.speakText = speakText;
 
 // Custom Agent Modal Voice & Controls
 const agentModal = document.getElementById('agentModal');
@@ -612,10 +636,8 @@ function appendMessage(author, text, type) {
     ? `<button class="speak-btn" title="Ouvir resposta" onclick="(function(btn) {
         if(window.speechSynthesis && window.speechSynthesis.speaking) { window.speechSynthesis.cancel(); btn.classList.remove('speaking'); return; }
         btn.classList.add('speaking');
-        var u = new SpeechSynthesisUtterance(${JSON.stringify(text)});
-        u.lang = 'pt-BR';
-        u.onend = function(){ btn.classList.remove('speaking'); };
-        if(window.speechSynthesis) window.speechSynthesis.speak(u);
+        window.speakText(${JSON.stringify(text)});
+        setTimeout(function(){ btn.classList.remove('speaking'); }, Math.max(1200, ${Math.min(Math.max(String(text).length * 55, 1200), 12000)}));
       })(this)">🔈</button>`
     : '';
   
