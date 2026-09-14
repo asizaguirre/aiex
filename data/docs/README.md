@@ -1,4 +1,4 @@
-# AlEx AI Platform v2
+# AlEx AI Platform v3
 
 Enterprise AI Agent Platform.
 

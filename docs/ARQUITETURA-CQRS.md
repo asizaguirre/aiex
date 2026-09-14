@@ -1,4 +1,4 @@
-# 🏗️ Arquitetura CQRS — Páginas de Produtos (AlEx Platform v2)
+# 🏗️ Arquitetura CQRS — Páginas de Produtos (AlEx Platform v3)
 
 ## Visão geral
 

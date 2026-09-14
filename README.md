@@ -1,4 +1,4 @@
-# AlEx Platform v2 — Multi-Agent AI Commerce Platform
+# AlEx Platform v3 — Multi-Agent AI Commerce Platform
 
 > **Alia descobre. Alex constrói. Você vende.**
 > **Alia discovers. Alex builds. You sell.**
@@ -476,7 +476,7 @@ and professional services.
 
 ---
 
-**AlEx Platform v2** — self-hosted, customer-owned data, and a workspace built
+**AlEx Platform v3** — self-hosted, customer-owned data, and a workspace built
 to turn ideas into useful digital experiences.
-**AlEx Platform v2** — self-hosted, customer-owned data, and a workspace built
+**AlEx Platform v3** — self-hosted, customer-owned data, and a workspace built
 to turn ideas into useful digital experiences.

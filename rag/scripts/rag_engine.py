@@ -113,7 +113,7 @@ Resposta clara e objetiva:"""
 
 def main():
     print("=" * 60)
-    print("  RAG Engine - Alex Platform v2")
+    print("  RAG Engine - Alex Platform v3")
     print("=" * 60)
 
     documents = load_documents()

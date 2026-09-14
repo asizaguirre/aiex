@@ -21,7 +21,7 @@ public class HealthController {
                 "UP",
 
                 "application",
-                "AlEx AI Platform v2"
+                "AlEx AI Platform v3"
         );
 
     }

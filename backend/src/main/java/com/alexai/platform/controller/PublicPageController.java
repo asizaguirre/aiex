@@ -340,7 +340,7 @@ public class PublicPageController {
                 + "</style></head><body>"
                 + "<header><div class=\"logo\"><div class=\"orb\"></div>AlEx Platform</div><span class=\"badge\">Página Pública</span></header>"
                 + "<main><h1>" + title + "</h1><div class=\"content-box\">" + formattedContent + "</div>"
-                + "<div class=\"footer-actions\"><span>Publicado com AlEx Platform v2</span><button class=\"btn-copy\" onclick=\"navigator.clipboard.writeText(window.location.href);this.textContent='Link Copiado!';setTimeout(()=>this.textContent='Copiar Link',2000)\">Copiar Link</button></div>"
+                + "<div class=\"footer-actions\"><span>Publicado com AlEx Platform v3</span><button class=\"btn-copy\" onclick=\"navigator.clipboard.writeText(window.location.href);this.textContent='Link Copiado!';setTimeout(()=>this.textContent='Copiar Link',2000)\">Copiar Link</button></div>"
                 + "<script>document.querySelectorAll('.page-chatbot form').forEach(function(form){form.addEventListener('submit',async function(event){event.preventDefault();var input=form.querySelector('input');var reply=form.querySelector('.chatbot-reply');var button=form.querySelector('button');if(!input.value.trim())return;button.disabled=true;reply.textContent='Pensando...';try{var response=await fetch('/api/pages/" + slug + "/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({message:input.value.trim()})});var data=await response.json();reply.textContent=data.reply||data.message||'Não foi possível responder agora.'}catch(error){reply.textContent='Não foi possível conectar ao assistente agora.'}finally{button.disabled=false}})})</script>"
                 + "</main></body></html>";
     }

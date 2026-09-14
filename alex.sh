@@ -171,7 +171,7 @@ start_local() {
     log "Construindo backend com Maven local"
     (cd "$BACKEND_DIR" && mvn -B -DskipTests package)
     log "Iniciando backend local"
-    java -jar "$BACKEND_DIR/target/alex-platform-2.0.0.jar" &
+    java -jar "$BACKEND_DIR/target/alex-platform-3.0.0.jar" &
     BACKEND_PID=$!
     trap 'kill "$BACKEND_PID" 2>/dev/null || true' EXIT
   else

@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # ==============================================================================
-#  AlEx Platform v2 — Startar Todo o Sistema (Instalação & Inicialização Total)
+#  AlEx Platform v3 — Startar Todo o Sistema (Instalação & Inicialização Total)
 # ==============================================================================
 #  Este script automatiza 100% do ecossistema:
 #  1. Valida e instala dependências do sistema (Java 21, Maven, Ollama, ngrok, Python)
@@ -24,7 +24,7 @@ fi
 
 BACKEND_DIR="$ROOT_DIR/backend"
 PORT="${PORT:-8080}"
-NGROK_DOMAIN="${NGROK_DOMAIN:-stimulus-foam-carport.ngrok-free.dev}"
+NGROK_DOMAIN="${NGROK_DOMAIN:-}"
 OLLAMA_MODEL="${OLLAMA_MODEL:-qwen2.5-coder:7b}"
 EMBED_MODEL="${EMBED_MODEL:-nomic-embed-text}"
 
@@ -52,7 +52,7 @@ log_err()  { printf "${RED}${BOLD}✖ %s${NC}\n" "$*" >&2; }
 banner() {
   printf "${BLUE}${BOLD}"
   echo "╔════════════════════════════════════════════════════════════════════════════╗"
-  echo "║                   🚀 AlEx AI Platform v2 — Inicializador                    ║"
+  echo "║                   🚀 AlEx AI Platform v3 — Inicializador                    ║"
   echo "║                  Ecossistema Completo de Agentes & Web                     ║"
   echo "╚════════════════════════════════════════════════════════════════════════════╝"
   printf "${NC}\n"
@@ -180,12 +180,12 @@ start_ollama_service() {
 
 # ─── 3. BUILD E INICIALIZAÇÃO DO BACKEND SPRING BOOT ────────────────────────
 start_backend_service() {
-  log_step "Preparando backend Spring Boot (AlEx Platform v2)..."
+  log_step "Preparando backend Spring Boot (AlEx Platform v3)..."
   configure_java_runtime
 
   mkdir -p "$ROOT_DIR/db/public_media" "$ROOT_DIR/rag/documents" "$ROOT_DIR/rag/vectorstore"
 
-  local jar_file="$BACKEND_DIR/target/alex-platform-2.0.0.jar"
+  local jar_file="$BACKEND_DIR/target/alex-platform-3.0.0.jar"
   local need_build=false
 
   if [[ ! -f "$jar_file" ]]; then

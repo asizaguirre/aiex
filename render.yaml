@@ -1,7 +1,32 @@
 services:
   - type: web
-    name: alex-platform-v2
+    name: alex-platform-v3
     env: docker
     dockerfilePath: backend/Dockerfile.render
     plan: starter
     autoDeploy: true
+    healthCheckPath: /actuator/health
+    envVars:
+      - key: PORT
+        value: 8080
+      - key: OLLAMA_MODEL
+        value: qwen2.5-coder:7b
+      - key: OLLAMA_WARMUP_ENABLED
+        value: false
+      - key: ELASTICSEARCH_ENABLED
+        value: false
+      - key: SPRING_PROFILES_ACTIVE
+        value: prod
+      # ── Secrets (configure no dashboard do Render, nunca no repo) ──
+      - key: GOOGLE_CLIENT_ID
+        sync: false
+      - key: ADMIN_EMAILS
+        sync: false
+      - key: OLLAMA_URL
+        sync: false
+      - key: LOCAL_SERVER_IP
+        sync: false
+      - key: SERVER_PUBLIC_KEY
+        sync: false
+      - key: CLIENT_PRIVATE_KEY
+        sync: false

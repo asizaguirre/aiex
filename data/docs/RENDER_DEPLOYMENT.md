@@ -60,7 +60,7 @@ cd backend && mvn clean package
 Dashboard → **Settings** → **Start Command**
 
 ```bash
-java -jar backend/target/alex-platform-2.0.0.jar
+java -jar backend/target/alex-platform-3.0.0.jar
 ```
 
 ### Passo 4: Deploy usando Docker Compose

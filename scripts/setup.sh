@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # ============================================
-# AlEx AI Platform v2 - Environment Setup
+# AlEx AI Platform v3 - Environment Setup
 # ============================================
 # This script validates and installs all required
 # dependencies. Idempotent: safe to run multiple times.
@@ -131,7 +131,7 @@ install_if_missing pip3 python3-pip
 # ─── Report ───────────────────────────────────
 echo ""
 info "════════════════════════════════════════"
-info "  AlEx AI Platform v2 - Setup Complete  "
+info "  AlEx AI Platform v3 - Setup Complete  "
 info "════════════════════════════════════════"
 if [[ ${#skipped[@]} -gt 0 ]]; then
   log "Já instalados (pulados): ${skipped[*]}"

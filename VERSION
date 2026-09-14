@@ -1,0 +1,10 @@
+# AlEx Platform v3
+
+Release publication-ready.
+
+- Backend: Spring Boot 3.5.x / Java 25 — `backend/pom.xml` (`3.0.0`)
+- Frontend: workspace estático em `backend/src/main/resources/static/`
+- Infra: `docker-compose.yml`, `backend/Dockerfile`, `backend/Dockerfile.render`, `render.yaml`
+- Config: copie `.env.example` → `.env` (nunca commite segredos)
+
+Ver `DEPLOY.md` para publicar e `CHANGELOG.md` para o histórico.

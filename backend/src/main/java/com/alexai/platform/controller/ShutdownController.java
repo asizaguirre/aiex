@@ -64,7 +64,7 @@ public class ShutdownController {
 
         return Map.of(
                 "status", "SHUTTING_DOWN",
-                "message", "AlEx Platform v2 está sendo desligada por " + email + "... Até breve!"
+                "message", "AlEx Platform v3 está sendo desligada por " + email + "... Até breve!"
         );
     }
 }

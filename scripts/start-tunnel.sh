@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # ============================================
-# AlEx AI Platform v2 - ngrok Tunnel
+# AlEx AI Platform v3 - ngrok Tunnel
 # ============================================
 # Inicia o tunnel ngrok com domínio fixo para o backend AlEx.
 # Uso: ./scripts/start-tunnel.sh [porta] [dominio]
@@ -21,7 +21,7 @@ for ENV_FILE in "$PROJECT_ROOT/.env" "$PROJECT_ROOT/config/.env"; do
 done
 
 PORT="${1:-${PORT:-8080}}"
-DOMAIN="${2:-${NGROK_DOMAIN:-stimulus-foam-carport.ngrok-free.dev}}"
+DOMAIN="${2:-${NGROK_DOMAIN:-}}"
 LOG_FILE="/tmp/ngrok.log"
 
 GREEN='\033[0;32m'

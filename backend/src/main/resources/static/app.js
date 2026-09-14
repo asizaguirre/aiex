@@ -1,5 +1,5 @@
 // ===================================================================
-//  AlEx AI Platform v2 - Core Application & UI Engine
+//  AlEx AI Platform v3 - Core Application & UI Engine
 //  God-Tier Aesthetics & Intelligent Responsive Controls
 // ===================================================================
 
@@ -2231,7 +2231,7 @@ Proteja a pintura do seu veículo com os melhores produtos do mercado mundial.
     title: '📊 Relatório Executivo de Auditoria & Performance do Agente',
     content: `# Relatório Executivo de Resultados & Entregáveis
 
-Documento oficial gerado pelos agentes autônomos da AlEx Platform v2.
+Documento oficial gerado pelos agentes autônomos da AlEx Platform v3.
 
 ## 📈 Métricas de Desempenho
 - **Taxa de Conversão Alcançada:** +42.6%
@@ -2619,7 +2619,7 @@ window.handleGoogleLogin = async function(response) {
   await checkUserVerification(email, name, picture);
 };
 
-let googleClientId = '800464070591-33nvvitct598mb53dccehl15q8cjm4m9.apps.googleusercontent.com';
+let googleClientId = '';
 
 async function fetchAuthConfig() {
   try {
@@ -2629,11 +2629,22 @@ async function fetchAuthConfig() {
       if (data.googleClientId) googleClientId = data.googleClientId;
     }
   } catch (ignored) {}
+  // GOOGLE_CLIENT_ID deve ser configurado via variável de ambiente no servidor.
+  // Sem ele, o login Google fica desabilitado (fallback para acesso direto).
+  if (!googleClientId) {
+    const fallbackBtn = document.getElementById('googleFallbackBtn');
+    if (fallbackBtn) fallbackBtn.style.display = 'inline-flex';
+  }
 }
 
 function initializeGoogleSignIn() {
   const button = document.getElementById('googleSignInButton');
   const fallbackBtn = document.getElementById('googleFallbackBtn');
+  if (!googleClientId) {
+    if (fallbackBtn) fallbackBtn.style.display = 'inline-flex';
+    if (button) button.style.display = 'none';
+    return false;
+  }
   if (!button || !window.google || !window.google.accounts || !window.google.accounts.id) {
     if (fallbackBtn) fallbackBtn.style.display = 'inline-flex';
     return false;

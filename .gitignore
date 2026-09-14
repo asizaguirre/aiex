@@ -1,41 +1,40 @@
 # Java
-
 target/
-
 *.jar
+*.class
 
+# Python / venv
 .venv/
-
-.env.wireguard
-wireguard-config/wg_confs/*.conf
 __pycache__/
 *.pyc
+
+# RAG / dados locais (vetores e documentos pessoais — nunca publicar)
 rag/vectorstore/
+rag/documents/*
+!rag/documents/.gitkeep
 data/docs/*.pdf
 
+# Banco local (dados de clientes/testes — nunca publicar)
+db/*.json
+db/public_media/*
+!db/public_media/.gitkeep
+
+# WireGuard / segredos
+.env.wireguard
+wireguard-config/wg_confs/*.conf
 
 # IDE
-
 .idea/
-
 .vscode/
 
-
-# Environment
-
+# Environment (segredos locais)
 .env
 
-
 # Logs
-
 *.log
 
-
 # OS
-
 .DS_Store
 
-
 # Backups
-
 *.backup.*

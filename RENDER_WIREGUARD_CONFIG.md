@@ -11,7 +11,7 @@ apt-get update && apt-get install -y wireguard wireguard-tools iproute2 && cd ba
 
 ### 2. Start Command
 ```bash
-java -jar backend/target/alex-platform-2.0.0.jar
+java -jar backend/target/alex-platform-3.0.0.jar
 ```
 
 ### 3. Docker Configuration

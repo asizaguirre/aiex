@@ -26,10 +26,10 @@ public class AdminController {
 
     @GetMapping("/auth/config")
     public Map<String, Object> getAuthConfig() {
-        String clientId = System.getenv().getOrDefault("GOOGLE_CLIENT_ID", "800464070591-33nvvitct598mb53dccehl15q8cjm4m9.apps.googleusercontent.com");
+        String clientId = System.getenv().getOrDefault("GOOGLE_CLIENT_ID", "");
         return Map.of(
             "googleClientId", clientId,
-            "platformVersion", "2.0.0",
+            "platformVersion", "3.0.0",
             "authMode", "GOOGLE_AND_DIRECT"
         );
     }

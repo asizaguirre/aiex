@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # ==============================================================================
-#  AlEx Platform v2 — admin.sh · Painel de Controle & Monitoramento
+#  AlEx Platform v3 — admin.sh · Painel de Controle & Monitoramento
 # ==============================================================================
 #  Comandos rápidos:
 #    ./admin.sh              → Menu interativo
@@ -40,7 +40,7 @@ configure_java_runtime() {
 configure_java_runtime
 ROOT_DIR="$SCRIPT_DIR"
 BACKEND_DIR="$ROOT_DIR/backend"
-JAR_FILE="$BACKEND_DIR/target/alex-platform-2.0.0.jar"
+JAR_FILE="$BACKEND_DIR/target/alex-platform-3.0.0.jar"
 
 LOG_DIR="/tmp/alex-logs"
 mkdir -p "$LOG_DIR"
@@ -56,7 +56,7 @@ fi
 PORT="${PORT:-8080}"
 OLLAMA_MODEL="${OLLAMA_MODEL:-qwen2.5-coder:7b}"
 EMBED_MODEL="${EMBED_MODEL:-nomic-embed-text}"
-NGROK_DOMAIN="${NGROK_DOMAIN:-stimulus-foam-carport.ngrok-free.dev}"
+NGROK_DOMAIN="${NGROK_DOMAIN:-}"
 ADMIN_EMAILS="${ADMIN_EMAILS:-asizaguirre@gmail.com}"
 USER_DB_PATH="${USER_DB_PATH:-$ROOT_DIR/db/users.json}"
 
@@ -131,7 +131,7 @@ draw_header() {
 
   printf "${BG_DARK}${WHITE}${BOLD}"
   printf "╔══════════════════════════════════════════════════════════════════════════╗\n"
-  printf "║       🚀  AlEx Platform v2 — Painel de Controle & Monitoramento         ║\n"
+  printf "║       🚀  AlEx Platform v3 — Painel de Controle & Monitoramento         ║\n"
   printf "╠══════════════════════════════════════════════════════════════════════════╣\n"
   printf "${RESET}${BG_DARK}"
 
@@ -458,7 +458,7 @@ do_monitor_tail() {
   clear
   printf "${BOLD}${CYAN}"
   printf "╔══════════════════════════════════════════════════════════════════════════╗\n"
-  printf "║        📊 Console de Monitoramento — AlEx Platform v2                   ║\n"
+  printf "║        📊 Console de Monitoramento — AlEx Platform v3                   ║\n"
   printf "╠══════════════════════════════════════════════════════════════════════════╣\n"
   printf "║  ${DIM}Instale tmux para console dividido em painéis: sudo apt install tmux${BOLD}${CYAN}   ║\n"
   printf "║  ${DIM}Ctrl+C para voltar ao menu${BOLD}${CYAN}                                               ║\n"
@@ -528,7 +528,7 @@ if [[ $# -gt 0 ]]; then
     restart)      do_restart_all;;
     monitor)      do_monitor;;
     status)
-      printf "\n${BOLD}Status AlEx Platform v2${RESET}\n\n"
+      printf "\n${BOLD}Status AlEx Platform v3${RESET}\n\n"
       printf "  ☕ Backend : "; color_status "$(status_backend)"; printf "\n"
       printf "  🧠 Ollama  : "; color_status "$(status_ollama)";  printf "\n"
       printf "  🌐 Ngrok   : "; color_status "$(status_ngrok)";   printf "\n\n"
