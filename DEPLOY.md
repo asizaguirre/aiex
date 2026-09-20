@@ -53,6 +53,20 @@ java -jar backend/target/alex-platform-3.0.0.jar
 
 Sem WireGuard (Ollama indisponível), a UI e as páginas públicas funcionam; o chat IA responde erro amigável até `OLLAMA_URL` ser configurado.
 
+## 5b. Alvo principal: Replit (sem cartão)
+
+O deploy recomendado do backend é o **Replit** (ver `replit.md`):
+
+1. Importe `https://github.com/asizaguirre/aiex` no Replit.
+2. Garanta JDK 21+ (`openjdk21` no `replit.nix` ou `nix-env -iA nixpkgs.openjdk21`;
+   com JDK 25 o build é nativo, com 21–24 o `replit-start.sh` compila em `release 21`).
+3. Clique em **Run** (executa `bash replit-start.sh`, porta `5000`, modo reduzido).
+4. Use o link público do Repl (`https://<repl>.<user>.repl.co`) como `ALEX_BACKEND_URL`
+   na demo: `https://asizaguirre.github.io/aiex/demo/` (campo ⚙️ Backend).
+
+O Render (`render.yaml`, plano `free`) fica como alternativa secundária sem cartão
+(dorme após ~15 min parado).
+
 ## 7. Publicação automática (GitHub Actions)
 
 Cada `push` para `main`/`master`, cada tag `v*` ou cada run manual:

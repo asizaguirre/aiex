@@ -1,4 +1,4 @@
-# AlEx Platform v3 no Replit
+# AlEx Platform v3 no Replit (alvo principal — backend público sem cartão)
 
 Execução direta (sem Docker), em **modo reduzido**: a UI e os recursos com
 persistência JSON funcionam; Ollama (chat IA) e Elasticsearch ficam desligados
@@ -7,13 +7,17 @@ e o app degrada com mensagens amigáveis.
 ## Como rodar
 
 1. Importe este repositório no Replit.
-2. Garanta um **JDK 25** no ambiente (o `replit-start.sh` detecta `JAVA_HOME`,
-   `~/.jdk/jdk-25*`, `/usr/lib/jvm/*25*` ou o `java` do PATH).
+2. Garanta um **JDK 21+** no ambiente (o `replit-start.sh` prefere o 25;
+   com 21–24 ele compila em `release 21` automaticamente):
+   - `replit.nix`: adicione `openjdk21` em `deps`
+   - ou via Shell: `nix-env -iA nixpkgs.openjdk21` (e `nix-env -iA nixpkgs.maven`)
 3. Clique em **Run** (executa `bash replit-start.sh`) ou rode no Shell:
    ```bash
    bash replit-start.sh
    ```
 4. Abra a Webview — a app escuta em `0.0.0.0:${PORT:-5000}`.
+5. O link público do Repl (`https://<repl>.<user>.repl.co`) é a URL do backend
+   — cole-a no campo ⚙️ Backend da demo em `https://asizaguirre.github.io/aiex/demo/`.
 
 ## Variáveis
 
@@ -35,5 +39,6 @@ e o app degrada com mensagens amigáveis.
 
 ## Notas
 
-- O deploy de produção recomendado continua sendo o **Render** via `render.yaml`
-  (ver `DEPLOY.md`); o Replit é ideal para demo/validação rápida.
+- O Replit é agora o **alvo principal de deploy do backend** (sem cartão);
+  o Render (`render.yaml`, plano free) fica como alternativa secundária.
+  Ver `DEPLOY.md` para o comparativo completo.

@@ -28,35 +28,59 @@ fail() { printf '\n[AlEx:replit] ERRO: %s\n' "$*" >&2; exit 1; }
 
 java_major() { "$1" -version 2>&1 | sed -n 's/.*version "\([0-9]*\).*/\1/p' | head -1; }
 
+# Detecta JDK: prefere 25 (nativo); aceita 21+ com compilação em release 21.
+# No Replit (JDK 21/17 via Nix), o build usa -Dmaven.compiler.release=21.
 configure_java_runtime() {
   local candidate major
-  for candidate in "${JAVA_HOME:-}" "$HOME"/.jdk/jdk-25* /usr/lib/jvm/*25*; do
+  for candidate in "${JAVA_HOME:-}" "$HOME"/.jdk/jdk-25* "$HOME"/.jdk/jdk-21* /usr/lib/jvm/*25* /usr/lib/jvm/*21*; do
     [[ -x "$candidate/bin/java" ]] || continue
     major="$(java_major "$candidate/bin/java")"
     if [[ "$major" == "25" ]]; then
       export JAVA_HOME="$candidate"
       export PATH="$JAVA_HOME/bin:$PATH"
+      JAVA_RELEASE="25"
       log "Java 25 em $JAVA_HOME"
       return 0
+    elif [[ "$major" == "21" && -z "${JAVA_HOME_25:-}" ]]; then
+      export JAVA_HOME_21="$candidate"
     fi
   done
   if command -v java >/dev/null 2>&1; then
     major="$(java_major java)"
-    [[ "$major" == "25" ]] || fail "Java 25 é obrigatório (encontrado: ${major:-desconhecido} em $(command -v java)). No Replit, ative um runtime Java 25 e rode de novo."
-    log "Java 25 do sistema em $(command -v java)"
+    if [[ "$major" == "25" ]]; then
+      JAVA_RELEASE="25"
+      log "Java 25 do sistema em $(command -v java)"
+      return 0
+    elif [[ "$major" =~ ^(21|22|23|24)$ ]]; then
+      JAVA_RELEASE="21"
+      log "Java ${major} detectado (sem 25) — compilando em release 21 para compatibilidade (Replit)"
+      return 0
+    fi
+    fail "Java ${major:-desconhecido} é muito antigo (mínimo 21). Instale um JDK 21+ e rode de novo."
+  elif [[ -n "${JAVA_HOME_21:-}" && -x "$JAVA_HOME_21/bin/java" ]]; then
+    export JAVA_HOME="$JAVA_HOME_21"
+    export PATH="$JAVA_HOME/bin:$PATH"
+    JAVA_RELEASE="21"
+    log "Java 21 em $JAVA_HOME — compilando em release 21 para compatibilidade (Replit)"
     return 0
   fi
-  fail "Java 25 não encontrado. Instale um JDK 25 (local: ~/.jdk/jdk-25*; Replit: runtime Java 25) e rode de novo."
+  fail "Nenhum JDK 21+ encontrado. Instale um JDK (Replit: adicione openjdk21 no Nix) e rode de novo."
 }
 
 mkdir -p "$ROOT_DIR/db" "$ROOT_DIR/db/public_media" "$ROOT_DIR/rag/documents" "$ROOT_DIR/rag/vectorstore"
 
 configure_java_runtime
+JAVA_RELEASE="${JAVA_RELEASE:-25}"
 
 if [[ ! -f "$JAR_FILE" ]] || [[ "${REBUILD:-false}" == "true" ]]; then
   command -v mvn >/dev/null 2>&1 || fail "Maven (mvn) não encontrado. Instale o Maven 3.9+ e rode de novo."
-  log "Compilando backend (mvn -DskipTests package)…"
-  (cd "$BACKEND_DIR" && mvn -B -DskipTests package)
+  if [[ "$JAVA_RELEASE" == "21" ]]; then
+    log "Compilando backend em release 21 (mvn -DskipTests -Dmaven.compiler.release=21 package)…"
+    (cd "$BACKEND_DIR" && mvn -B -DskipTests -Dmaven.compiler.release=21 -Djava.version=21 package)
+  else
+    log "Compilando backend (mvn -DskipTests package)…"
+    (cd "$BACKEND_DIR" && mvn -B -DskipTests package)
+  fi
 else
   log "Usando JAR existente: $JAR_FILE (REBUILD=true para recompilar)"
 fi
