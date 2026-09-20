@@ -4,7 +4,6 @@ import com.alexai.platform.client.OllamaClient;
 import com.alexai.platform.cqrs.PageCommandService;
 import com.alexai.platform.cqrs.PageQueryService;
 import com.alexai.platform.service.AdminAuthService;
-import com.alexai.platform.service.PublicPageService;
 import com.alexai.platform.service.UserAccessService;
 import org.springframework.core.io.FileSystemResource;
 import org.springframework.core.io.Resource;
@@ -33,20 +32,18 @@ public class PublicPageController {
 
     private final AdminAuthService adminAuthService;
     private final UserAccessService userAccessService;
-    private final PublicPageService publicPageService;
     private final PageCommandService pageCommandService;
     private final PageQueryService pageQueryService;
     private final OllamaClient ollamaClient;
     private final com.alexai.platform.service.CustomAgentService customAgentService;
     private final Path mediaStorageDir = Paths.get(System.getenv().getOrDefault("PUBLIC_MEDIA_DIR", "db/public_media"));
 
-    public PublicPageController(AdminAuthService adminAuthService, UserAccessService userAccessService, PublicPageService publicPageService,
+    public PublicPageController(AdminAuthService adminAuthService, UserAccessService userAccessService,
                                 PageCommandService pageCommandService, PageQueryService pageQueryService,
                                 OllamaClient ollamaClient,
                                 com.alexai.platform.service.CustomAgentService customAgentService) {
         this.adminAuthService = adminAuthService;
         this.userAccessService = userAccessService;
-        this.publicPageService = publicPageService;
         this.pageCommandService = pageCommandService;
         this.pageQueryService = pageQueryService;
         this.ollamaClient = ollamaClient;
@@ -222,6 +219,7 @@ public class PublicPageController {
     }
 
     @GetMapping("/media/{fileName}")
+    @SuppressWarnings("null")
     public ResponseEntity<Resource> serveMedia(@PathVariable String fileName) {
         try {
             Path filePath = mediaStorageDir.resolve(fileName).normalize();

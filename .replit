@@ -1,0 +1,6 @@
+# AlEx Platform v3 — Replit (backend Spring Boot + frontend estático, sem Docker).
+# O botão Run executa replit-start.sh (porta 5000, modo reduzido sem Ollama/ES).
+run = "bash replit-start.sh"
+
+[deployment]
+run = ["sh", "-c", "bash replit-start.sh"]

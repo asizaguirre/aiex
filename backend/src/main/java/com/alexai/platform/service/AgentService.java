@@ -18,13 +18,11 @@ public class AgentService {
     private final OllamaClient ollamaClient;
     private final CustomAgentService customAgentService;
     private final AdminAuthService adminAuthService;
-    private final UserAccessService userAccessService;
 
-    public AgentService(OllamaClient ollamaClient, CustomAgentService customAgentService, AdminAuthService adminAuthService, UserAccessService userAccessService) {
+    public AgentService(OllamaClient ollamaClient, CustomAgentService customAgentService, AdminAuthService adminAuthService) {
         this.ollamaClient = ollamaClient;
         this.customAgentService = customAgentService;
         this.adminAuthService = adminAuthService;
-        this.userAccessService = userAccessService;
     }
 
     public ChatResponse execute(ChatRequest request) {
@@ -126,7 +124,7 @@ public class AgentService {
         StringBuilder context = new StringBuilder();
 
         // 1. Read RAG documents
-        String ragDir = System.getenv().getOrDefault("RAG_STORAGE_DIR", "/IA/workspace/alex-platform-v2/rag/documents");
+        String ragDir = System.getenv().getOrDefault("RAG_STORAGE_DIR", "rag/documents");
         File dir = new File(ragDir);
         if (dir.exists() && dir.isDirectory()) {
             File[] files = dir.listFiles((d, name) -> name.endsWith(".meta.json"));
@@ -135,7 +133,7 @@ public class AgentService {
                 ObjectMapper om = new ObjectMapper();
                 for (File f : files) {
                     try {
-                        Map meta = om.readValue(f, Map.class);
+                        Map<String, Object> meta = om.readValue(f, new com.fasterxml.jackson.core.type.TypeReference<Map<String, Object>>() {});
                         context.append("- Documento: ").append(meta.get("fileName")).append("\n");
                         context.append("  Agente Alvo: ").append(meta.get("agent")).append("\n");
                         context.append("  Trecho: ").append(meta.get("textExcerpt")).append("\n\n");
@@ -147,14 +145,14 @@ public class AgentService {
         }
 
         // 2. Read DB records (Fonte da Verdade)
-        File dbFile = new File("/IA/workspace/alex-platform-v2/db/database.json");
+        File dbFile = new File(System.getenv().getOrDefault("DATABASE_JSON_PATH", "db/database.json"));
         if (dbFile.exists() && dbFile.isFile()) {
             try {
                 ObjectMapper om = new ObjectMapper();
-                List<Map> records = om.readValue(dbFile, List.class);
+                List<Map<String, Object>> records = om.readValue(dbFile, new com.fasterxml.jackson.core.type.TypeReference<List<Map<String, Object>>>() {});
                 if (records != null && !records.isEmpty()) {
                     context.append("\n=== REGISTROS DA FONTE DA VERDADE (DB) ===\n");
-                    for (Map r : records) {
+                    for (Map<String, Object> r : records) {
                         context.append("- Título: ").append(r.get("title")).append("\n");
                         context.append("  Conteúdo: ").append(r.get("content")).append("\n\n");
                     }

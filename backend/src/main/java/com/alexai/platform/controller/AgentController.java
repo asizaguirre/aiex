@@ -47,7 +47,7 @@ public class AgentController {
     public Map<String,Object> uploadFile(@RequestParam("file") org.springframework.web.multipart.MultipartFile file,
                                          @RequestParam(value = "agent", required = false) String agent) throws java.io.IOException {
 
-        String baseDir = System.getenv().getOrDefault("RAG_STORAGE_DIR", "/IA/workspace/alex-platform-v2/rag/documents");
+        String baseDir = System.getenv().getOrDefault("RAG_STORAGE_DIR", "rag/documents");
         java.nio.file.Path dir = java.nio.file.Paths.get(baseDir);
         java.nio.file.Files.createDirectories(dir);
 
@@ -92,13 +92,13 @@ public class AgentController {
 
     @GetMapping("/db")
     public java.util.List<Map<String, Object>> getDbRecords() throws java.io.IOException {
-        java.nio.file.Path dbPath = java.nio.file.Paths.get("/IA/workspace/alex-platform-v2/db/database.json");
+        java.nio.file.Path dbPath = java.nio.file.Paths.get(System.getenv().getOrDefault("DATABASE_JSON_PATH", "db/database.json"));
         if (!java.nio.file.Files.exists(dbPath)) {
             return java.util.List.of();
         }
         com.fasterxml.jackson.databind.ObjectMapper om = new com.fasterxml.jackson.databind.ObjectMapper();
         try {
-            return om.readValue(dbPath.toFile(), java.util.List.class);
+            return om.readValue(dbPath.toFile(), new com.fasterxml.jackson.core.type.TypeReference<java.util.List<Map<String, Object>>>() {});
         } catch (Exception e) {
             return java.util.List.of();
         }
@@ -106,7 +106,7 @@ public class AgentController {
 
     @PostMapping("/db")
     public Map<String, Object> addDbRecord(@RequestBody Map<String, Object> record) throws java.io.IOException {
-        java.nio.file.Path dbDir = java.nio.file.Paths.get("/IA/workspace/alex-platform-v2/db");
+        java.nio.file.Path dbDir = java.nio.file.Paths.get(System.getenv().getOrDefault("DATABASE_JSON_DIR", "db"));
         java.nio.file.Files.createDirectories(dbDir);
         java.nio.file.Path dbPath = dbDir.resolve("database.json");
 
@@ -114,7 +114,7 @@ public class AgentController {
         java.util.List<Map<String, Object>> records = new java.util.ArrayList<>();
         if (java.nio.file.Files.exists(dbPath)) {
             try {
-                records = new java.util.ArrayList<>(om.readValue(dbPath.toFile(), java.util.List.class));
+                records = new java.util.ArrayList<>(om.readValue(dbPath.toFile(), new com.fasterxml.jackson.core.type.TypeReference<java.util.List<Map<String, Object>>>() {}));
             } catch (Exception e) {
                 // Ignore and reset
             }
@@ -130,6 +130,7 @@ public class AgentController {
     }
 
     @PostMapping("/pipeline/run")
+    @SuppressWarnings("unchecked")
     public Map<String, Object> runPipeline(@RequestBody Map<String, Object> screenConfig) {
         String title = (String) screenConfig.getOrDefault("title", "Tela Dinâmica");
         java.util.List<Map<String, Object>> fields = (java.util.List<Map<String, Object>>) screenConfig.get("fields");

@@ -25,6 +25,9 @@ public class AdminAuthService {
         if (email == null || email.isBlank()) return false;
         String cleanEmail = email.trim().toLowerCase();
 
-        return DEFAULT_ADMINS.stream().anyMatch(admin -> admin.equalsIgnoreCase(cleanEmail));
+        for (String admin : DEFAULT_ADMINS) {
+            if (admin.equalsIgnoreCase(cleanEmail)) return true;
+        }
+        return false;
     }
 }

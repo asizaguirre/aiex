@@ -16,7 +16,7 @@ import java.util.Map;
 @Service
 public class CustomAgentService {
 
-    private final String DB_PATH = "/IA/workspace/alex-platform-v2/db/custom_agents.json";
+    private final String DB_PATH = System.getenv().getOrDefault("CUSTOM_AGENTS_DB_PATH", "db/custom_agents.json");
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     public List<Map<String, Object>> readAgents() {

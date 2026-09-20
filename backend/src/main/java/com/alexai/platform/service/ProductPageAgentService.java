@@ -3,7 +3,6 @@ package com.alexai.platform.service;
 import com.alexai.platform.client.OllamaClient;
 import com.alexai.platform.cqrs.PageCommandService;
 import com.alexai.platform.cqrs.PageQueryService;
-import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.stereotype.Service;
 
@@ -190,13 +189,13 @@ public class ProductPageAgentService {
             Pattern blockPattern = Pattern.compile("```(?:json)?\\s*(\\{.*?})\\s*```", Pattern.DOTALL);
             Matcher matcher = blockPattern.matcher(raw);
             if (matcher.find()) {
-                return objectMapper.readValue(matcher.group(1), Map.class);
+                return objectMapper.readValue(matcher.group(1), new com.fasterxml.jackson.core.type.TypeReference<Map<String, Object>>() {});
             }
             // Tenta o primeiro objeto JSON solto na resposta
             int start = raw.indexOf('{');
             int end = raw.lastIndexOf('}');
             if (start >= 0 && end > start) {
-                return objectMapper.readValue(raw.substring(start, end + 1), Map.class);
+                return objectMapper.readValue(raw.substring(start, end + 1), new com.fasterxml.jackson.core.type.TypeReference<Map<String, Object>>() {});
             }
         } catch (Exception ignored) {}
         return null;

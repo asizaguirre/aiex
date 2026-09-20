@@ -17,6 +17,7 @@ public class OllamaClient {
     @Value("${ollama.model}")
     private String model;
 
+    @SuppressWarnings("unchecked")
     public String generate(String prompt) {
         String url = ollamaUrl + "/api/generate";
         Map<String, Object> body = Map.of(
@@ -26,7 +27,7 @@ public class OllamaClient {
         );
 
         try {
-            Map response = restTemplate.postForObject(url, body, Map.class);
+            Map<String, Object> response = restTemplate.postForObject(url, body, Map.class);
             if (response != null && response.containsKey("response")) {
                 return response.get("response").toString();
             }

@@ -50,6 +50,7 @@ public class ElasticsearchClient {
     }
 
     /** Cria o índice se não existir, com mapping amigável para páginas. */
+    @SuppressWarnings("null")
     public void ensureIndex(String index) {
         if (!enabled) return;
         try {

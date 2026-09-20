@@ -63,7 +63,8 @@ public class PageQueryService {
                  "size":50,"sort":[{"_score":{"order":"desc"}}]}"""
                 .formatted(safe, isAdmin ? "" : ",{\"filter\":[{\"term\":{\"ownerEmail\":\"" + ownerEmail.replace("\"", "\\\\\"") + "\"}}]}");
         try {
-            var response = new org.springframework.web.client.RestTemplate().postForObject(
+            @SuppressWarnings("unchecked")
+            Map<String, Object> response = new org.springframework.web.client.RestTemplate().postForObject(
                     elasticsearch.getUrl() + "/" + PageCommandService.INDEX + "/_search",
                     jsonEntity(esQuery), Map.class);
             if (response == null) return List.of();
