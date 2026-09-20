@@ -119,6 +119,16 @@
 
         <div class="auth-divider"><span>OU ACESSE COM SEU E-MAIL</span></div>
 
+        <details class="backend-config" id="backendConfigBlock">
+          <summary>⚙️ Backend (API) — demo estática</summary>
+          <p class="backend-config-hint">Quando esta página roda fora do servidor (ex.: GitHub Pages), informe a URL pública do backend para conectar a API.</p>
+          <form id="backendConfigForm" class="direct-login-form">
+            <input type="url" id="backendUrlInput" placeholder="https://seu-backend.exemplo.com" autocomplete="url" inputmode="url" />
+            <button type="submit" class="btn-secondary" id="backendSaveBtn">Salvar e reconectar</button>
+          </form>
+          <button type="button" class="btn-secondary" id="backendClearBtn" style="display:none;">Usar mesmo servidor (limpar)</button>
+        </details>
+
         <form id="directLoginForm" class="direct-login-form">
           <input type="email" id="directLoginEmail" placeholder="seu-email@exemplo.com" required autocomplete="email" />
           <button type="submit" class="btn-primary" id="directLoginBtn">Acessar Workspace</button>

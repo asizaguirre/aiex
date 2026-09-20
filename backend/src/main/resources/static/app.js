@@ -16,6 +16,66 @@ function getApiUrl(path) {
   return path;
 }
 
+// Painel de configuração do backend (demo estática: GitHub Pages etc.)
+(function initBackendConfig() {
+  const block = document.getElementById('backendConfigBlock');
+  const form = document.getElementById('backendConfigForm');
+  const input = document.getElementById('backendUrlInput');
+  const clearBtn = document.getElementById('backendClearBtn');
+  const status = document.getElementById('loginStatus');
+  if (!block || !form || !input) return;
+
+  const onLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+  const saved = localStorage.getItem('ALEX_BACKEND_URL') || '';
+  if (saved) input.value = saved;
+  // No servidor embutido (mesmo host) o bloco é desnecessário — mostra aberto só fora dele.
+  block.open = !onLocal;
+  if (onLocal) block.style.display = 'none';
+  if (clearBtn) clearBtn.style.display = saved ? '' : 'none';
+
+  form.addEventListener('submit', (e) => {
+    e.preventDefault();
+    const value = input.value.trim().replace(/\/+$/, '');
+    if (!value) {
+      if (status) {
+        status.innerHTML = '<div>💡 Informe a URL pública do backend (ex.: https://seu-app.onrender.com) ou limpe para usar o mesmo servidor.</div>';
+        status.className = 'mini-status';
+      }
+      return;
+    }
+    try {
+      const parsed = new URL(value);
+      if (!/^https?:$/.test(parsed.protocol)) throw new Error('protocolo inválido');
+    } catch (err) {
+      if (status) {
+        status.innerHTML = '<div>❌ URL inválida. Use http(s)://host[:porta] sem caminho de API.</div>';
+        status.className = 'mini-status error';
+      }
+      return;
+    }
+    localStorage.setItem('ALEX_BACKEND_URL', value);
+    if (clearBtn) clearBtn.style.display = '';
+    if (status) {
+      status.innerHTML = `<div>✅ Backend configurado: <strong>${escapeHtml(value)}</strong>. Reconectando…</div>`;
+      status.className = 'mini-status';
+    }
+    window.location.reload();
+  });
+
+  if (clearBtn) {
+    clearBtn.addEventListener('click', () => {
+      localStorage.removeItem('ALEX_BACKEND_URL');
+      input.value = '';
+      clearBtn.style.display = 'none';
+      if (status) {
+        status.innerHTML = '<div>🔄 Backend limpo — usando o mesmo servidor da página.</div>';
+        status.className = 'mini-status';
+      }
+      window.location.reload();
+    });
+  }
+})();
+
 // Utility: Debounce helper for performance optimization
 function debounce(func, wait) {
   let timeout;
