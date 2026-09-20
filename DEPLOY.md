@@ -59,7 +59,7 @@ Cada `push` para `main`/`master`, cada tag `v*` ou cada run manual:
 
 1. `CI/CD - Build and Test Backend` — compila o JAR com Maven (JDK 25).
 2. `Publish Docker image to GHCR` — constrói `backend/Dockerfile` e publica em:
-   `ghcr.io/asizaguirre/alex-platform-v2` com as tags:
+   `ghcr.io/asizaguirre/aiex` com as tags:
    - `latest` + `sha-<commit>` — em todo push
    - `3.0.1`, `3.0` — quando o run parte de uma tag `v*`
 
@@ -69,10 +69,10 @@ Nada de PAT/tokens no repo: o publish usa `secrets.GITHUB_TOKEN`
 
 Ver runs:
 `Actions` → `Publish Docker image to GHCR` · pacote:
-`<repo>/pkgs/container/alex-platform-v2`
+`<repo>/pkgs/container/aiex`
 
 ```bash
-docker pull ghcr.io/asizaguirre/alex-platform-v2:latest
+docker pull ghcr.io/asizaguirre/aiex:latest
 ```
 
 ## 8. Pós-deploy
