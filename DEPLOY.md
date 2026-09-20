@@ -53,7 +53,29 @@ java -jar backend/target/alex-platform-3.0.0.jar
 
 Sem WireGuard (Ollama indisponível), a UI e as páginas públicas funcionam; o chat IA responde erro amigável até `OLLAMA_URL` ser configurado.
 
-## 6. Pós-deploy
+## 7. Publicação automática (GitHub Actions)
+
+Cada `push` para `main`/`master`, cada tag `v*` ou cada run manual:
+
+1. `CI/CD - Build and Test Backend` — compila o JAR com Maven (JDK 25).
+2. `Publish Docker image to GHCR` — constrói `backend/Dockerfile` e publica em:
+   `ghcr.io/asizaguirre/alex-platform-v2` com as tags:
+   - `latest` + `sha-<commit>` — em todo push
+   - `3.0.1`, `3.0` — quando o run parte de uma tag `v*`
+
+Nada de PAT/tokens no repo: o publish usa `secrets.GITHUB_TOKEN`
+(`packages: write`). Commits concorrentes são cancelados automaticamente
+(`concurrency` por ref).
+
+Ver runs:
+`Actions` → `Publish Docker image to GHCR` · pacote:
+`<repo>/pkgs/container/alex-platform-v2`
+
+```bash
+docker pull ghcr.io/asizaguirre/alex-platform-v2:latest
+```
+
+## 8. Pós-deploy
 
 - Proteja a branch `main`/`master`, mantenha o repo **privado** (ver `SECURITY.md`).
 - Rotacione chaves WireGuard/ngrok periodicamente.
